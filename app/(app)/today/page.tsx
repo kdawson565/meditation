@@ -16,6 +16,7 @@ import TagInput from "@/components/TagInput";
 import TideLine from "@/components/TideLine";
 import ResurfacedCard from "@/components/ResurfacedCard";
 import Nudges from "@/components/Nudges";
+import LensIdea from "@/components/LensIdea";
 import { callAI } from "@/lib/ai-client";
 import { practiceInsights } from "@/lib/insights";
 
@@ -62,7 +63,7 @@ export default function TodayPage() {
   }, [checkins, todayCheckin, drive]);
 
   const suggestion = useMemo(
-    () => (drive != null && peace != null && entries ? suggestPractice({ drive, peace, today, entries, mid, countedDays: profile?.countedDays, hasEnough: Object.values(profile?.enough ?? {}).some(Boolean) }) : null),
+    () => (drive != null && peace != null && entries ? suggestPractice({ drive, peace, today, entries, mid, countedDays: profile?.countedDays, hasEnough: Object.values(profile?.enough ?? {}).some(Boolean), lenses: profile?.lenses }) : null),
     [drive, peace, entries, today, mid, profile],
   );
   const base = aiPick ?? suggestion;
@@ -155,6 +156,7 @@ export default function TodayPage() {
         </div>
         {tide}
         {resurfaced && <ResurfacedCard r={resurfaced} />}
+        <LensIdea lenses={profile.lenses} practice={p.id} seed={today} offset={1} variant="card" />
         {checkinId && (
           <div className="space-y-5 rounded-2xl border border-line p-5">
             <p className="text-[15px]">If you like, rate them once more. This is how Ballast learns which practices settle you without dulling your edge.</p>
@@ -195,7 +197,7 @@ export default function TodayPage() {
           setStep("breath");
           // Ask Claude while the breath gate runs; if it doesn't answer in time, the rule-based pick stands.
           if (profile.aiConsent) {
-            const avail = availablePractices({ countedDays: profile.countedDays, hasEnough: Object.values(profile.enough).some(Boolean) });
+            const avail = availablePractices({ countedDays: profile.countedDays, hasEnough: Object.values(profile.enough).some(Boolean), lenses: profile.lenses });
             void callAI<{ practice: PracticeId; reason: string }>("/api/ai/next-practice", {
               drive, peace,
               days: checkins.slice(-14).map((c) => ({ date: c.localDate, drive: c.drive, peace: c.peace, peaceAfter: c.peaceAfter, driveAfter: c.driveAfter })),
@@ -228,12 +230,13 @@ export default function TodayPage() {
           <h1 className="mt-1 font-serif text-3xl">{p.title}</h1>
           <p className="mt-3 font-serif text-xl leading-relaxed">{p.prompt}</p>
           {base && !practice && <p className="mt-3 text-[15px] text-muted">{base.reason}{aiPick && <span className="mt-1 block text-xs">Picked by Claude from your recent dials and practice history. No journal text was sent.</span>}</p>}
+          <div className="mt-4"><LensIdea lenses={profile.lenses} practice={p.id} seed={today} /></div>
           <button className="btn-quiet -ml-3 mt-1 rounded-full text-sm" onClick={() => setChoosing((c) => !c)} aria-expanded={choosing}>
             {choosing ? "Keep this one" : "Choose another"}
           </button>
           {choosing && (
             <ul className="mt-2 grid gap-2">
-              {availablePractices({ countedDays: profile.countedDays, hasEnough: Object.values(profile.enough).some(Boolean) }).map((id) => (
+              {availablePractices({ countedDays: profile.countedDays, hasEnough: Object.values(profile.enough).some(Boolean), lenses: profile.lenses }).map((id) => (
                 <li key={id}>
                   <button className={`w-full rounded-xl border px-4 py-3 text-left transition-colors duration-calm ${id === activePractice ? "border-deep" : "border-line hover:border-muted"}`} onClick={() => { setPractice(id); setFields({}); setChoosing(false); }}>
                     <span className="font-medium">{PRACTICES[id].title}</span>

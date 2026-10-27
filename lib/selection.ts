@@ -17,9 +17,10 @@ export function suggestPractice(opts: {
   mid: { drive: number; peace: number };
   countedDays?: boolean;
   hasEnough?: boolean;
+  lenses?: string[];
 }): Suggestion {
   const { drive, peace, today, entries, mid } = opts;
-  const pool = availablePractices({ countedDays: !!opts.countedDays, hasEnough: !!opts.hasEnough });
+  const pool = availablePractices({ countedDays: !!opts.countedDays, hasEnough: !!opts.hasEnough, lenses: opts.lenses });
   const q = quadrantOf(drive, peace, mid);
 
   const lastUsed = (p: PracticeId) => {
@@ -32,6 +33,11 @@ export function suggestPractice(opts: {
     return { practice: "enough_line", reason: "It's been a couple of weeks since you looked at your Enough Line. Worth a check, hungry or not." };
   if (pool.includes("counted_days") && lastUsed("counted_days") >= 10 && peace >= 5)
     return { practice: "counted_days", reason: "You asked for these now and then. A gentle one, if the day has room." };
+
+  if (pool.includes("control") && lastUsed("control") >= 6 && (q === "grind" || q === "fog"))
+    return { practice: "control", reason: "Drive is up and Peace is down, which is often a sign of carrying things that aren't yours to move. This one sorts them." };
+  if (pool.includes("play") && lastUsed("play") >= 6 && (q === "grind" || q === "ballast"))
+    return { practice: "play", reason: "A reminder from your lens that today isn't only a route to results. Pick one thing to do for its own sake." };
 
   const preferences: Record<string, [PracticeId, string][]> = {
     grind: [

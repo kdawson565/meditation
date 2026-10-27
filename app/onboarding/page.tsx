@@ -5,6 +5,7 @@ import { useProfile } from "@/lib/hooks";
 import Link from "next/link";
 import { saveProfile, emptyEnough } from "@/lib/store";
 import { loadSample } from "@/lib/seed";
+import LensPicker from "@/components/LensPicker";
 import { cloudConfigured } from "@/lib/supabase";
 import type { EnoughLine } from "@/lib/types";
 
@@ -24,6 +25,7 @@ export default function Onboarding() {
   const [counted, setCounted] = useState(false);
   const [notify, setNotify] = useState(false);
   const [ai, setAi] = useState(false);
+  const [lenses, setLenses] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const existing = useProfile();
   // Signing in on a new device can bring a profile down from the cloud while this screen is open.
@@ -31,7 +33,7 @@ export default function Onboarding() {
 
   const finish = async () => {
     setBusy(true);
-    await saveProfile({ name: name.trim(), enough, ritualTime: time, countedDays: counted, notify, aiConsent: ai });
+    await saveProfile({ name: name.trim(), enough, ritualTime: time, countedDays: counted, notify, aiConsent: ai, lenses });
     router.replace("/today");
   };
 
@@ -84,14 +86,22 @@ export default function Onboarding() {
         )}
         {step === 3 && (
           <>
+            <h1 className="font-serif text-3xl">Whose ideas keep you steady?</h1>
+            <p className="mt-3 text-muted">Pick up to three. Ballast will weave short ideas from them into your practice, always in its own words and never as a quotation. Optional, and you can change it any time.</p>
+            <div className="mt-6"><LensPicker value={lenses} onChange={setLenses} /></div>
+            <Next onClick={() => setStep(4)} label={lenses.length ? "Continue" : "Skip for now"} />
+          </>
+        )}
+        {step === 4 && (
+          <>
             <h1 className="font-serif text-3xl">When would you like to practice?</h1>
             <p className="mt-3 text-muted">Whenever suits you. Morning tends to work best, but there's no wrong answer.</p>
             <label htmlFor="rt" className="sr-only">Ritual time</label>
             <input id="rt" type="time" className="field mt-6 !w-auto" value={time} onChange={(e) => setTime(e.target.value)} />
-            <Next onClick={() => setStep(4)} />
+            <Next onClick={() => setStep(5)} />
           </>
         )}
-        {step === 4 && (
+        {step === 5 && (
           <>
             <h1 className="font-serif text-3xl">A few gentle choices</h1>
             <div className="mt-6 space-y-4">

@@ -30,6 +30,8 @@ export interface Practice {
   showEnough?: boolean;
   /** only offered when the user has opted in (Settings → Counted Days) */
   optIn?: "countedDays";
+  /** only offered when one of these lenses is chosen */
+  lensUnlock?: string[];
 }
 
 export const PRACTICES: Record<PracticeId, Practice> = {
@@ -112,6 +114,32 @@ export const PRACTICES: Record<PracticeId, Practice> = {
     subjectKey: "who",
     why: "Time with people is finite but not as small as it feels. This is for appreciating it, not for counting down.",
   },
+  play: {
+    id: "play",
+    title: "Play, not progress",
+    blurb: "Doing something for its own sake",
+    lensUnlock: ["watts", "thich", "laozi", "zhuangzi"],
+    prompt: "What are you doing today that you could do for its own sake, with no destination? What would change if you treated it as play?",
+    fields: [
+      { key: "what", label: "The thing", placeholder: "A walk, a draft, a conversation, the dishes…", required: true },
+      { key: "play", label: "What would it be to do it just for the doing?", placeholder: "If there were no result to reach, I'd…", long: true, required: true, isBody: true },
+    ],
+    subjectKey: "what",
+    why: "Ambition aims at results. Play reminds you that the days you're living in aren't only a route to them.",
+  },
+  control: {
+    id: "control",
+    title: "What's yours to steer",
+    blurb: "Separate the steerable from the rest",
+    lensUnlock: ["epictetus", "marcus", "seneca", "frankl"],
+    prompt: "Name something weighing on you. What part of it is yours to steer, and what part isn't? Then name the one move that's yours.",
+    fields: [
+      { key: "weight", label: "What's weighing on you", placeholder: "A deadline, a person, a result…", required: true },
+      { key: "steer", label: "What's yours, what isn't, and the one move that is", placeholder: "Mine: … Not mine: … My move: …", long: true, required: true, isBody: true },
+    ],
+    subjectKey: "weight",
+    why: "Effort goes further when it's aimed at the part you can actually move, and the rest can get a little lighter.",
+  },
   enough_line: {
     id: "enough_line",
     title: "Enough Line check",
@@ -127,13 +155,14 @@ export const PRACTICES: Record<PracticeId, Practice> = {
   },
 };
 
-export const PRACTICE_ORDER: PracticeId[] = ["past_self", "mental_subtraction", "win_thank", "grind", "invisible_chain", "enough_line", "counted_days"];
+export const PRACTICE_ORDER: PracticeId[] = ["past_self", "mental_subtraction", "win_thank", "grind", "invisible_chain", "enough_line", "counted_days", "play", "control"];
 
-export function availablePractices(opts: { countedDays: boolean; hasEnough: boolean }) {
+export function availablePractices(opts: { countedDays: boolean; hasEnough: boolean; lenses?: string[] }) {
   return PRACTICE_ORDER.filter((id) => {
     const p = PRACTICES[id];
     if (p.optIn === "countedDays" && !opts.countedDays) return false;
     if (p.showEnough && !opts.hasEnough) return false;
+    if (p.lensUnlock && !p.lensUnlock.some((l) => (opts.lenses ?? []).includes(l))) return false;
     return true;
   });
 }

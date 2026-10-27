@@ -63,7 +63,7 @@ let running = false;
 const toRow = {
   profile: (p: Profile, userId: string) => ({
     id: userId, name: p.name, ritual_time: p.ritualTime, enough: p.enough, counted_days: p.countedDays,
-    notify: p.notify, ai_consent: p.aiConsent, theme: p.theme, timezone: p.timezone, updated_at: p.updatedAt,
+    notify: p.notify, ai_consent: p.aiConsent, theme: p.theme, timezone: p.timezone, lenses: p.lenses ?? [], updated_at: p.updatedAt,
   }),
   checkin: (c: Checkin, userId: string) => ({
     id: c.id, user_id: userId, local_date: c.localDate, drive: c.drive, peace: c.peace,
@@ -148,7 +148,7 @@ export async function syncNow(): Promise<{ ok: boolean; message: string }> {
       await db.profile.put({
         id: "me", name: remoteP.name, ritualTime: remoteP.ritual_time, enough: remoteP.enough,
         countedDays: remoteP.counted_days, notify: remoteP.notify, aiConsent: remoteP.ai_consent,
-        theme: remoteP.theme, timezone: remoteP.timezone ?? "UTC", createdAt: remoteP.created_at, updatedAt: remoteP.updated_at, dirty: 0,
+        theme: remoteP.theme, timezone: remoteP.timezone ?? "UTC", lenses: remoteP.lenses ?? [], createdAt: remoteP.created_at, updatedAt: remoteP.updated_at, dirty: 0,
       });
     }
     await db.meta.put({ key: "lastPull", value: pulledAt });

@@ -7,6 +7,7 @@ import { addDays, formatFull, formatShort, parseDate, todayStr, weekStartOf } fr
 import { saveReflection } from "@/lib/store";
 import { aiReasonText, callAI } from "@/lib/ai-client";
 import { localReflection } from "@/lib/reflect";
+import { lensById } from "@/lib/lenses";
 import { suggestsDistress } from "@/lib/safety";
 import Link from "next/link";
 
@@ -39,11 +40,12 @@ export default function ReflectionPage() {
   async function generate() {
     setBusy(true);
     setNote("");
-    let body = localReflection(week!.days, week!.entries);
+    let body = localReflection(week!.days, week!.entries, profile!.lenses);
     let source: "ai" | "local" = "local";
     if (profile!.aiConsent) {
       const r = await callAI<{ body: string }>("/api/ai/reflection", {
         days: week!.days.map((c) => ({ date: c.localDate, drive: c.drive, peace: c.peace, peaceAfter: c.peaceAfter, driveAfter: c.driveAfter })),
+        lenses: (profile!.lenses ?? []).map(lensById).filter(Boolean).map((l) => ({ name: l!.name, ideas: l!.ideas.slice(0, 5).map((i) => i.text) })),
         entries: week!.entries.map((e) => ({ date: e.localDate, practice: e.practice, body: e.body, tags: e.tags, sail: e.sail, floor: e.floor })),
       });
       if (r.ok) { body = r.data.body; source = "ai"; } else setNote(aiReasonText(r.reason));

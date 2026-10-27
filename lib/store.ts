@@ -18,6 +18,7 @@ export async function saveProfile(p: Partial<Profile>) {
     notify: false,
     aiConsent: false,
     theme: "system",
+    lenses: [],
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
     createdAt: existing?.createdAt ?? t,
     ...existing,

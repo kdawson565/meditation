@@ -9,6 +9,7 @@ import { download, exportJSON, exportMarkdown } from "@/lib/export";
 import { loadSample } from "@/lib/seed";
 import { cloudConfigured, supabase } from "@/lib/supabase";
 import { syncNow } from "@/lib/sync";
+import LensPicker from "@/components/LensPicker";
 import { disablePush, enablePush, refreshPushTime } from "@/lib/push";
 import type { EnoughLine } from "@/lib/types";
 
@@ -98,6 +99,12 @@ export default function SettingsPage() {
             <textarea id={`en-${f.key}`} rows={2} className="field serif" defaultValue={profile.enough[f.key]} onBlur={(e) => e.target.value !== profile.enough[f.key] && void saveProfile({ enough: { ...profile.enough, [f.key]: e.target.value.trim() } })} />
           </div>
         ))}
+      </section>
+
+      <section aria-labelledby="s-lens" className="space-y-3">
+        <h2 id="s-lens" className="font-serif text-xl">Your lenses</h2>
+        <p className="text-[15px] text-muted">Thinkers whose ideas get woven into your practice, in Ballast's own words. Some lenses unlock extra practices.</p>
+        <LensPicker value={profile.lenses ?? []} onChange={(ids) => void saveProfile({ lenses: ids })} />
       </section>
 
       <section aria-labelledby="s-pref" className="divide-y divide-line">

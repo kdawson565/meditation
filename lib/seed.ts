@@ -144,7 +144,7 @@ export async function loadSample(name = "Sam") {
     await db.profile.put({
       id: "me", name: existing?.name || name, ritualTime: existing?.ritualTime || "07:30",
       enough: existing && Object.values(existing.enough).some(Boolean) ? existing.enough : { ...emptyEnough, ...ENOUGH },
-      countedDays: false, notify: false, aiConsent: false, theme: existing?.theme ?? "system", timezone: existing?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
+      countedDays: false, notify: false, aiConsent: false, lenses: existing?.lenses?.length ? existing.lenses : ["watts", "marcus"], theme: existing?.theme ?? "system", timezone: existing?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
       createdAt: existing?.createdAt ?? now(), updatedAt: now(), dirty: 1,
     });
   });

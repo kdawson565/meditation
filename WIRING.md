@@ -3,10 +3,10 @@
 Ballast runs fully local with none of this. Do these in order when you're ready to turn everything on. Each step says how to confirm it worked.
 
 ## 1. Supabase (accounts + sync) ✅ connected and tested (magic-link email + Google still open)
-Project `ballast` (ref `gxaxjqhkvmgtezukgamm`, us-east-2) lives in the **LocatoCRE** org (Pro). Migrations 0001-0003 are applied, keys are in `.env.local`, and the redirect allow-list is `http://localhost:3111/**`. **Before deploying**, add your production URL + `/auth/callback` to Auth → URL Configuration, and swap Site URL.
+Project `ballast` (ref `gxaxjqhkvmgtezukgamm`, us-east-2) lives in the **LocatoCRE** org (Pro). Migrations 0001-0004 are applied, keys are in `.env.local`, and the redirect allow-list is `http://localhost:3111/**`. **Before deploying**, add your production URL + `/auth/callback` to Auth → URL Configuration, and swap Site URL.
 Verified with throwaway users: push sync, pull on a fresh device, RLS isolation (another user reads nothing, can't insert as you, can't edit your rows), and full account deletion with cascade. Not verified: a real emailed magic link through the PKCE callback, and Google sign-in (needs Google OAuth credentials in Auth → Providers).
 
-1. Create a project. SQL editor → run, in order: `supabase/migrations/0001_init.sql`, `0002_phase2.sql`, `0003_phase3.sql`.
+1. Create a project. SQL editor → run, in order: `supabase/migrations/0001_init.sql`, `0002_phase2.sql`, `0003_phase3.sql`, `0004_lenses.sql`.
 2. Auth → Providers: enable Email (magic link) and Google. Auth → URL Configuration: add `http://localhost:3111/auth/callback` (and your production URL + `/auth/callback`).
 3. `.env.local`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
 4. **Confirm:** restart dev, Settings → Sign in, get the link, then write an entry. Rows should appear in `checkins` and `entries` in the Supabase table editor, and a second browser signed in as the same user should show the same entries. Try Settings → Delete everything on a throwaway account and confirm the auth user and its rows are gone.

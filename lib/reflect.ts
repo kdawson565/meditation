@@ -1,10 +1,11 @@
 import type { Checkin, Entry } from "./types";
 import { PRACTICES } from "./practices";
+import { pickIdea } from "./lenses";
 
 const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
 
 /** A plain, honest on-device reflection used when AI is off or unavailable. Numbers only, no spin. */
-export function localReflection(days: Checkin[], entries: Entry[]): string {
+export function localReflection(days: Checkin[], entries: Entry[], lenses?: string[]): string {
   if (days.length === 0 && entries.length === 0) return "There isn't enough from this week to say much yet. A few days of dials and entries and there will be something here.";
   const d = avg(days.map((c) => c.drive));
   const p = avg(days.map((c) => c.peace));
@@ -38,5 +39,7 @@ export function localReflection(days: Checkin[], entries: Entry[]): string {
   entries.forEach((e) => practiceCounts.set(e.practice, (practiceCounts.get(e.practice) ?? 0) + 1));
   const unused = Object.values(PRACTICES).find((x) => !practiceCounts.has(x.id) && !x.optIn && !x.showEnough);
   if (unused) parts.push(`One thing to try next week: ${unused.title}. You haven't used it lately.`);
+  const idea = pickIdea(lenses, "any", entries[0]?.localDate ?? "week");
+  if (idea) parts.push(`In the spirit of ${idea.lens.name}: ${idea.idea.text}`);
   return parts.join(" ");
 }

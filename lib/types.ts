@@ -1,4 +1,4 @@
-export type PracticeId = "past_self" | "mental_subtraction" | "win_thank" | "grind" | "invisible_chain" | "counted_days" | "enough_line";
+export type PracticeId = "past_self" | "mental_subtraction" | "win_thank" | "grind" | "invisible_chain" | "counted_days" | "enough_line" | "play" | "control";
 
 export interface EnoughLine {
   money: string;
@@ -17,6 +17,7 @@ export interface Profile {
   aiConsent: boolean;
   theme: "system" | "light" | "dark";
   timezone: string;
+  lenses?: string[];
   createdAt: string;
   updatedAt: string;
   dirty: 0 | 1;
