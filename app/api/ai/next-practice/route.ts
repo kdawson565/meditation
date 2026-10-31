@@ -10,7 +10,7 @@ export async function POST(req: Request) {
   if (raw.length > 30_000) return Response.json({ error: "too_large" }, { status: 413 });
   let b: { drive?: number; peace?: number; days?: Day[]; history?: { date: string; practice: string }[]; available?: { id: string; title: string; blurb: string }[]; insights?: { practice: string; n: number; peaceLift: number; driveShift: number | null }[] };
   try { b = JSON.parse(raw); } catch { return Response.json({ error: "bad_request" }, { status: 400 }); }
-  const available = (b.available ?? []).slice(0, 12).map((a) => ({ id: clip(a.id, 40), title: clip(a.title, 60), blurb: clip(a.blurb, 100) }));
+  const available = (b.available ?? []).slice(0, 16).map((a) => ({ id: clip(a.id, 40), title: clip(a.title, 60), blurb: clip(a.blurb, 100) }));
   if (!available.length) return Response.json({ error: "bad_request" }, { status: 400 });
 
   const system = `You choose today's gratitude practice for someone using Ballast, an app for ambitious people who want to feel full while still hungry. They rate Drive (hungry, focused) and Peace (settled, "enough") daily. The goal is to raise Peace without lowering Drive. Never encourage wanting less.

@@ -1,4 +1,6 @@
-export type PracticeId = "past_self" | "mental_subtraction" | "win_thank" | "grind" | "invisible_chain" | "counted_days" | "enough_line" | "play" | "control";
+export type PracticeId = "past_self" | "mental_subtraction" | "win_thank" | "grind" | "invisible_chain" | "counted_days" | "enough_line" | "play" | "control" | "one_move" | "future_pull" | "whose_hunger" | "short_day";
+
+export type SailResult = "filled" | "partly" | "not";
 
 export interface EnoughLine {
   money: string;
@@ -45,6 +47,8 @@ export interface Entry {
   tags: string[];
   sail?: string;
   floor?: string;
+  /** answered at the next check-in: did yesterday's Sail fill? */
+  sailResult?: SailResult;
   checkinId?: string;
   resurfaceOn?: string; // YYYY-MM-DD
   createdAt: string;

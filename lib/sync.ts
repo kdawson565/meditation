@@ -71,7 +71,7 @@ const toRow = {
   }),
   entry: (e: Entry, userId: string) => ({
     id: e.id, user_id: userId, local_date: e.localDate, practice: e.practice, prompt: e.prompt,
-    fields: e.fields, body: e.body, tags: e.tags, sail: e.sail ?? null, floor: e.floor ?? null,
+    fields: e.fields, body: e.body, tags: e.tags, sail: e.sail ?? null, floor: e.floor ?? null, sail_result: e.sailResult ?? null,
     checkin_id: e.checkinId ?? null, resurface_on: e.resurfaceOn ?? null, created_at: e.createdAt,
     updated_at: e.updatedAt, deleted_at: e.deletedAt ?? null,
   }),
@@ -136,7 +136,7 @@ export async function syncNow(): Promise<{ ok: boolean; message: string }> {
       if (local && local.updatedAt >= r.updated_at) continue;
       await db.entries.put({
         id: r.id, localDate: r.local_date, practice: r.practice, prompt: r.prompt, fields: r.fields ?? {},
-        body: r.body, tags: r.tags ?? [], sail: r.sail ?? undefined, floor: r.floor ?? undefined,
+        body: r.body, tags: r.tags ?? [], sail: r.sail ?? undefined, floor: r.floor ?? undefined, sailResult: r.sail_result ?? undefined,
         checkinId: r.checkin_id ?? undefined, resurfaceOn: r.resurface_on ?? undefined,
         createdAt: r.created_at, updatedAt: r.updated_at, deletedAt: r.deleted_at ?? undefined, dirty: 0,
       });

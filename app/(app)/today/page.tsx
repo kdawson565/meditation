@@ -3,13 +3,13 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { db } from "@/lib/db";
 import { useCheckins, useEntries, useProfile } from "@/lib/hooks";
-import { addMonths, daysInMonth, formatLong, greeting, todayStr } from "@/lib/dates";
+import { addDays, addMonths, daysInMonth, formatLong, greeting, todayStr } from "@/lib/dates";
 import { PRACTICES, availablePractices } from "@/lib/practices";
 import { midlines } from "@/lib/quadrant";
 import { suggestPractice } from "@/lib/selection";
 import { pickResurfacing, type Resurfacing } from "@/lib/resurface";
-import { saveCheckin, saveEntry, setAfter } from "@/lib/store";
-import type { PracticeId } from "@/lib/types";
+import { saveCheckin, saveEntry, setAfter, setSailResult } from "@/lib/store";
+import type { Entry, PracticeId, SailResult } from "@/lib/types";
 import BreathGate from "@/components/BreathGate";
 import DialSlider from "@/components/DialSlider";
 import TagInput from "@/components/TagInput";
@@ -20,7 +20,7 @@ import LensIdea from "@/components/LensIdea";
 import { callAI } from "@/lib/ai-client";
 import { practiceInsights } from "@/lib/insights";
 
-type Step = "dials" | "breath" | "practice" | "intention" | "close";
+type Step = "dials" | "breath" | "practice" | "intention" | "short" | "close";
 
 export default function TodayPage() {
   const profile = useProfile();
@@ -45,6 +45,7 @@ export default function TodayPage() {
   const [peaceAfter, setPeaceAfterState] = useState<number | null>(null);
   const [aiPick, setAiPick] = useState<{ practice: PracticeId; reason: string } | null>(null);
   const [driveAfter, setDriveAfterState] = useState<number | null>(null);
+  const [sailAnswer, setSailAnswer] = useState<SailResult | null>(null);
 
   const stepRef = useRef<Step>("dials");
   stepRef.current = step;
@@ -54,13 +55,21 @@ export default function TodayPage() {
   const todayEntries = useMemo(() => entries?.filter((e) => e.localDate === today) ?? [], [entries, today]);
   const mid = useMemo(() => midlines(checkins ?? []), [checkins]);
 
-  // defaults: yesterday's dials, so the slider starts near where you actually are
+  // Start neutral so yesterday's numbers don't anchor today's. Yesterday shows as a marker instead.
+  const lastCheckin = useMemo(() => [...(checkins ?? [])].reverse().find((c) => c.localDate < today), [checkins, today]);
   useEffect(() => {
     if (!checkins || drive !== null) return;
-    const last = checkins[checkins.length - 1];
-    setDrive(todayCheckin?.drive ?? last?.drive ?? 6);
-    setPeace(todayCheckin?.peace ?? last?.peace ?? 5);
+    setDrive(todayCheckin?.drive ?? 5);
+    setPeace(todayCheckin?.peace ?? 5);
   }, [checkins, todayCheckin, drive]);
+
+  // The most recent unanswered Sail from the last few days, asked about once at the next check-in.
+  const openSail: Entry | undefined = useMemo(
+    () => [...(entries ?? [])].filter((e) => e.sail && !e.deletedAt && e.localDate < today && e.localDate >= addDays(today, -3)).sort((a, b) => (a.localDate < b.localDate ? 1 : -1)).find((e) => !e.sailResult),
+    [entries, today],
+  );
+  const [sailEntry, setSailEntry] = useState<Entry | null>(null);
+  useEffect(() => { if (openSail && !sailEntry) setSailEntry(openSail); }, [openSail, sailEntry]);
 
   const suggestion = useMemo(
     () => (drive != null && peace != null && entries ? suggestPractice({ drive, peace, today, entries, mid, countedDays: profile?.countedDays, hasEnough: Object.values(profile?.enough ?? {}).some(Boolean) }) : null),
@@ -88,6 +97,18 @@ export default function TodayPage() {
     setFloor("");
     setChoosing(false);
   };
+
+  async function finishShort() {
+    setSaving(true);
+    const c = await saveCheckin(today, drive!, peace!);
+    const line = (fields.line ?? "").trim();
+    await saveEntry({ localDate: today, practice: "short_day", prompt: PRACTICES.short_day.prompt, fields: { line }, body: line, tags: [], sail: sail.trim() || undefined, checkinId: c.id });
+    setResurfaced(null);
+    setCheckinId(c.id);
+    setPractice("short_day");
+    setSaving(false);
+    setStep("close");
+  }
 
   async function finish(skipIntention = false) {
     setSaving(true);
@@ -189,8 +210,9 @@ export default function TodayPage() {
       <div className="fade-in space-y-8">
         <Header name={profile.name} />
         <Nudges />
-        <DialSlider label="Drive" hint="How hungry, focused and in motion do you feel?" low="Idle" high="Charging" value={drive} onChange={setDrive} />
-        <DialSlider label="Peace" hint="How settled, present and “enough” do you feel?" low="Restless" high="Settled" value={peace} onChange={setPeace} />
+        {sailEntry && <SailCheck entry={sailEntry} today={today} answer={sailAnswer} onAnswer={(r) => { setSailAnswer(r); void setSailResult(sailEntry.id, r); }} />}
+        <DialSlider label="Drive" hint="How hungry, focused and in motion do you feel?" low="Idle" high="Charging" value={drive} onChange={setDrive} ghost={todayCheckin ? undefined : lastCheckin?.drive} />
+        <DialSlider label="Peace" hint="How settled, present and “enough” do you feel?" low="Restless" high="Settled" value={peace} onChange={setPeace} ghost={todayCheckin ? undefined : lastCheckin?.peace} />
         <p className="text-sm text-muted">Be honest. Neither number is better or worse. They're just a bearing.</p>
         <button className="btn w-full sm:w-auto" onClick={async () => {
           await saveCheckin(today, drive, peace);
@@ -212,6 +234,33 @@ export default function TodayPage() {
         }}>
           Continue
         </button>
+        <button className="btn-quiet block rounded-full text-[15px]" onClick={() => { setFields({}); setSail(""); setStep("short"); }}>
+          Short on time? Do the 2-minute version
+        </button>
+      </div>
+    );
+  }
+
+  // ───── short day: dials + one line, no breath or full practice
+  if (step === "short") {
+    return (
+      <div className="fade-in space-y-7">
+        <div>
+          <h1 className="font-serif text-3xl">Short day</h1>
+          <p className="mt-2 text-muted">Drive {drive} · Peace {peace}. One line is enough. It still counts.</p>
+        </div>
+        <div>
+          <label htmlFor="f-line" className="mb-2 block text-[15px]">{PRACTICES.short_day.prompt}</label>
+          <input id="f-line" className="field serif" value={fields.line ?? ""} onChange={(e) => setFields({ line: e.target.value })} placeholder={PRACTICES.short_day.fields[0].placeholder} />
+        </div>
+        <div>
+          <label htmlFor="sail" className="mb-2 block text-[15px]">Sail: what I'm reaching for today <span className="text-muted">(optional)</span></label>
+          <input id="sail" className="field serif" value={sail} onChange={(e) => setSail(e.target.value)} placeholder="Today I'm going for…" />
+        </div>
+        <div className="flex items-center gap-3">
+          <button className="btn" onClick={() => void finishShort()} disabled={saving || !(fields.line ?? "").trim()}>{saving ? "Saving…" : "Close today"}</button>
+          <button className="btn-quiet rounded-full" onClick={() => setStep("dials")}>Back</button>
+        </div>
       </div>
     );
   }
@@ -318,6 +367,32 @@ export default function TodayPage() {
         </button>
       </div>
     </div>
+  );
+}
+
+const SAIL_CHOICES: [SailResult, string][] = [["filled", "Filled"], ["partly", "Partly"], ["not", "Not this time"]];
+
+/** Closes the loop on the last Sail. On a miss, the Floor written that day comes back, so a miss lands softly. */
+function SailCheck({ entry, today, answer, onAnswer }: { entry: Entry; today: string; answer: SailResult | null; onAnswer: (r: SailResult) => void }) {
+  const when = entry.localDate === addDays(today, -1) ? "Yesterday's Sail" : "Your last Sail";
+  return (
+    <section aria-labelledby="sail-check" className="space-y-3 rounded-2xl border border-line p-5">
+      <p id="sail-check" className="text-sm text-muted">{when}</p>
+      <p className="font-serif text-lg leading-relaxed">{entry.sail}</p>
+      <div role="radiogroup" aria-labelledby="sail-check" className="flex flex-wrap gap-2">
+        {SAIL_CHOICES.map(([r, label]) => (
+          <button key={r} role="radio" aria-checked={answer === r} onClick={() => onAnswer(r)} className={`min-h-[44px] rounded-full border px-4 text-sm transition-colors duration-calm ${answer === r ? "border-deep bg-deep text-on-deep" : "border-line hover:border-muted"}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+      {answer === "filled" && <p className="text-[15px] text-muted">Noted. That's momentum.</p>}
+      {answer && answer !== "filled" && (
+        <p className="text-[15px] text-muted">
+          {entry.floor ? <>Your Floor held either way: <span className="font-serif text-ink">{entry.floor}</span></> : "Noted. A Sail is a direction, not a verdict."}
+        </p>
+      )}
+    </section>
   );
 }
 

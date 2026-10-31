@@ -35,8 +35,10 @@ export function suggestPractice(opts: {
 
   if (pool.includes("control") && lastUsed("control") >= 6 && (q === "grind" || q === "fog"))
     return { practice: "control", reason: "Drive is up and Peace is down, which is often a sign of carrying things that aren't yours to move. This one sorts them." };
+  if (pool.includes("whose_hunger") && lastUsed("whose_hunger") >= 10 && q === "grind")
+    return { practice: "whose_hunger", reason: "Pushing hard and not feeling settled. Worth checking whether this hunger is fully yours." };
   if (pool.includes("play") && lastUsed("play") >= 6 && (q === "grind" || q === "ballast"))
-    return { practice: "play", reason: "A reminder from your lens that today isn't only a route to results. Pick one thing to do for its own sake." };
+    return { practice: "play", reason: "Today isn't only a route to results. Pick one thing to do for its own sake." };
 
   const preferences: Record<string, [PracticeId, string][]> = {
     grind: [
@@ -46,8 +48,11 @@ export function suggestPractice(opts: {
     fog: [
       ["past_self", "Low on both today. This one is gentle and asks very little."],
       ["win_thank", "Low on both today. Naming one small thing that went right, and who helped, is enough."],
+      ["one_move", "Low on both today. One small, real step is enough to get things moving."],
     ],
     harbor: [
+      ["one_move", "Settled, but Drive is low. A good moment to pick one real step and take it."],
+      ["future_pull", "Settled, but Drive is low. Calm is a good place to ask what you'd regret not trying."],
       ["grind", "Peace is running ahead of Drive today. A good moment to look at a hard thing from the other side."],
       ["win_thank", "Peace is high. A good moment to name a recent win and what's underneath it."],
       ["invisible_chain", "Peace is high. A good moment to trace the people behind something ordinary."],
@@ -56,6 +61,7 @@ export function suggestPractice(opts: {
       ["win_thank", "Settled and hungry. A good day to credit what's carrying you."],
       ["invisible_chain", "Settled and hungry. A good day to notice how many people your ordinary day rests on."],
       ["grind", "Settled and hungry. A good day to file today's struggle as something you'll be glad of."],
+      ["future_pull", "Settled and hungry. A good day to aim at something worth attempting."],
     ],
   };
 

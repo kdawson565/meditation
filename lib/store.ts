@@ -1,7 +1,7 @@
 import { db, now } from "./db";
 import { scheduleSync } from "./sync";
 import { uid } from "./dates";
-import type { Audit, Checkin, Entry, EnoughLine, LedgerItem, Profile, Reflection, Thank } from "./types";
+import type { Audit, Checkin, Entry, EnoughLine, LedgerItem, Profile, Reflection, SailResult, Thank } from "./types";
 import { addDays, todayStr } from "./dates";
 
 export const emptyEnough: EnoughLine = { money: "", health: "", relationships: "", time: "" };
@@ -53,6 +53,11 @@ export async function saveEntry(e: Omit<Entry, "id" | "createdAt" | "updatedAt" 
   await db.entries.put(entry);
   scheduleSync();
   return entry;
+}
+
+export async function setSailResult(entryId: string, sailResult: SailResult) {
+  await db.entries.update(entryId, { sailResult, updatedAt: now(), dirty: 1 });
+  scheduleSync();
 }
 
 export async function deleteEntry(id: string) {

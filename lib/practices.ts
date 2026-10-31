@@ -33,6 +33,50 @@ export interface Practice {
 }
 
 export const PRACTICES: Record<PracticeId, Practice> = {
+  one_move: {
+    id: "one_move",
+    title: "One honest move",
+    blurb: "The smallest real step on what matters",
+    prompt: "What matters most to you right now? What is the smallest real step you could take on it today?",
+    fields: [
+      { key: "matters", label: "What matters most right now", placeholder: "The thing I keep circling is…", required: true },
+      { key: "move", label: "The smallest real step, today", placeholder: "Before tonight I'll…", required: true, isBody: true },
+    ],
+    subjectKey: "matters",
+    why: "Drive stalls on size, not desire. A step small enough to take today gets momentum going again.",
+  },
+  future_pull: {
+    id: "future_pull",
+    title: "Future pull",
+    blurb: "What you'd regret not attempting",
+    prompt: "A year from now, what would you regret not having attempted? Not finished, just attempted.",
+    fields: [
+      { key: "regret", label: "What you'd regret not attempting", placeholder: "I'd be sorry I never tried…", long: true, required: true, isBody: true },
+      { key: "start", label: "What would starting look like this week?", placeholder: "One email, one sketch, one call…" },
+    ],
+    subjectKey: "start",
+    why: "People tend to regret what they never tried more than what they tried and missed. Naming it puts a bit of wind in the sail.",
+  },
+  whose_hunger: {
+    id: "whose_hunger",
+    title: "Whose hunger is this?",
+    blurb: "Sort your own ambitions from borrowed ones",
+    prompt: "Name one goal you're pushing hard on. If no one would ever know you'd reached it, would you still want it?",
+    fields: [
+      { key: "goal", label: "The goal", placeholder: "The thing I'm pushing on…", required: true },
+      { key: "honest", label: "Would you still want it, unseen? What part is truly yours?", placeholder: "Honestly, the part I'd want anyway is…", long: true, required: true, isBody: true },
+    ],
+    subjectKey: "goal",
+    why: "Borrowed goals drain you and your own goals fuel you. Sorting them keeps the drive and drops some of the strain.",
+  },
+  short_day: {
+    id: "short_day",
+    title: "Short day",
+    blurb: "Two minutes, still counts",
+    prompt: "One line: something good, or what's next.",
+    fields: [{ key: "line", label: "One line", placeholder: "Something good, or what's next…", required: true, isBody: true }],
+    why: "On the busiest days, a short check-in keeps the habit going.",
+  },
   past_self: {
     id: "past_self",
     title: "Past-Self Wishlist",
@@ -151,7 +195,7 @@ export const PRACTICES: Record<PracticeId, Practice> = {
   },
 };
 
-export const PRACTICE_ORDER: PracticeId[] = ["past_self", "mental_subtraction", "win_thank", "grind", "invisible_chain", "enough_line", "counted_days", "play", "control"];
+export const PRACTICE_ORDER: PracticeId[] = ["past_self", "mental_subtraction", "win_thank", "grind", "invisible_chain", "enough_line", "counted_days", "play", "control", "one_move", "future_pull", "whose_hunger"];
 
 export function availablePractices(opts: { countedDays: boolean; hasEnough: boolean }) {
   return PRACTICE_ORDER.filter((id) => {

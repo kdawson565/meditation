@@ -6,6 +6,8 @@ A quiet daily gratitude practice for people who want inner peace **and** high ac
 
 **Thinkers:** all eleven (Alan Watts, Marcus Aurelius, Seneca, Epictetus, Thich Nhat Hanh, Lao Tzu, Zhuangzi, Epicurus, Thoreau, Viktor Frankl, Naval Ravikant) are always woven in. Short ideas from them appear under practice prompts and on the close screen, and the weekly reflection frames its suggestion in the spirit of two rotating voices. Users can mark any number of favorites, who come up three times as often. "Play, not progress" and "What's yours to steer" are open to everyone. All content is hand-written paraphrase in `lib/lenses.ts`, labelled as such, never quotation.
 
+**Peace and drive:** yesterday's Sail is asked about once at the next check-in (filled / partly / not), and on a miss that day's Floor comes back. Insights shows your 30-day follow-through. Three drive practices (One honest move, Future pull, Whose hunger is this?) lead on calm-but-flat Harbor days. Dials start at 5 with a faint marker for your last check-in, so yesterday doesn't anchor today. A 2-minute short day (dials + one line) still counts.
+
 **Phase 3:** push reminders, AI-assisted practice picks, before/after insights ("What moves you") with Drive-after tracking, and an automated accessibility audit.
 
 **Phase 2:** the Ledger with Arrival Audit, Unsent Thanks with a draft helper, Weekly Reflection, and three more practices (Invisible Chain, Enough Line check, Counted Days, opt-in).
