@@ -25,6 +25,8 @@ interface Sample {
 }
 
 const SAMPLES: Sample[] = [
+  { practice: "advocate_reply", fields: { critic: "You always leave things to the last minute. Classic.", advocate: "You shipped the proposal on time while covering for two people. Next time, block Tuesday morning for it. That's a fix, not a flaw." }, tags: ["work"] },
+  { practice: "evidence_file", fields: { claim: "…run a team this size", evidence: "1. Kept the crew together through the 2023 slump.\n2. Hired Elena and Marcus, both now leading.\n3. Turned around the Northside account when everyone wanted to drop it." }, tags: ["work", "craft"] },
   { practice: "past_self", fields: { then: "At 24, sharing a one-bedroom and counting grocery money", now: "A house with a door I can close, and a table big enough that nobody has to eat standing up. I used to picture this as a someday. Today it's just where I made coffee." }, tags: ["home", "money"], sail: "Finish the pricing proposal before noon", floor: "My kids are healthy and the house is warm" },
   { practice: "mental_subtraction", fields: { thing: "The conversation with Dana that got me my first real job", without: "I'd still be refreshing job boards at midnight, probably bitter, probably convinced nobody gives people like me a shot. Almost everything I'm proud of runs back through one coffee she didn't have to take." }, tags: ["people", "work", "luck"], sail: "Ship the onboarding rewrite", floor: "I have people who answer when I call" },
   { practice: "win_thank", fields: { win: "Closed the biggest account of my career", thanks: "Marcus took the call at 6am three weeks in a row to rehearse with me. Priya covered the outage so I could prep. The customer took a chance because someone vouched for us years ago. I'd have lost this alone." }, tags: ["work", "people"], sail: "Follow up with the new account", floor: "A team that shows up for me" },
@@ -63,10 +65,12 @@ export async function loadSample(name = "Sam") {
     const t = (DAYS - i) / DAYS; // 0 → 1, a slow drift toward Ballast
     const drive = clamp(7.6 + (rand() - 0.5) * 2.4 - t * 0.4 + (i % 9 === 0 ? -2.2 : 0));
     const peace = clamp(3.6 + t * 3.6 + (rand() - 0.5) * 2.6 + (i % 11 === 0 ? -1.8 : 0));
+    // Voice drifts up over the sample and tends to travel with Peace
+    const voice = clamp(3.8 + t * 3.2 + (peace - 5) * 0.4 + (rand() - 0.5) * 2.2);
     const id = uid();
     const ts = new Date(`${date}T08:00:00`).toISOString();
     const afterBoost = rand() < 0.75 ? Math.round(rand() * 2) + (peace < 5 ? 1 : 0) : 0;
-    checkins.push({ id, localDate: date, drive, peace, peaceAfter: afterBoost ? clamp(peace + afterBoost) : undefined, driveAfter: afterBoost ? clamp(drive + (rand() < 0.2 ? -1 : 0)) : undefined, createdAt: ts, updatedAt: ts, dirty: 0 });
+    checkins.push({ id, localDate: date, drive, peace, voice, peaceAfter: afterBoost ? clamp(peace + afterBoost) : undefined, driveAfter: afterBoost ? clamp(drive + (rand() < 0.2 ? -1 : 0)) : undefined, createdAt: ts, updatedAt: ts, dirty: 0 });
 
     const s = SAMPLES[sampleIdx++ % SAMPLES.length];
     const p = PRACTICES[s.practice];

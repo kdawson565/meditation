@@ -44,6 +44,7 @@ export const LENSES: Lens[] = [
     tradition: "Stoicism",
     blurb: "An emperor's notes to himself on staying steady",
     ideas: [
+      { text: "He wrote his notebook to himself, as “you”: reminding, steadying, now and then scolding, but always on his own side.", practices: ["use_name", "advocate_reply"] },
       { text: "Much of what disturbs us is our judgment about an event, not the event. The judgment is the part you can still revise.", practices: ["grind", "mental_subtraction", "control"] },
       { text: "He imagined he might leave life right now, and let that decide what he did next. Not to frighten himself, but to sharpen what mattered.", practices: ["mental_subtraction", "counted_days"] },
       { text: "What stands in the way of the work can become the work. The obstacle is raw material.", practices: ["grind", "control"] },
@@ -57,6 +58,7 @@ export const LENSES: Lens[] = [
     tradition: "Stoicism",
     blurb: "A rich, busy man's letters on using time well",
     ideas: [
+      { text: "He describes reviewing each day at night like a fair judge, not a prosecutor: what went well, what to do better, and then letting himself off the hook.", practices: ["self_friend", "advocate_reply"] },
       { text: "We suffer more often in imagination than in reality. He suggested rehearsing loss in advance so it can't blindside you, and so you notice what you still have.", practices: ["mental_subtraction", "grind"] },
       { text: "Life is long enough if you spend it well. Most of the shortage is waste, not supply.", practices: ["enough_line", "counted_days", "play"] },
       { text: "He separated having much from craving more. The first can sit beside peace. The second never does.", practices: ["enough_line", "past_self"] },
@@ -71,6 +73,7 @@ export const LENSES: Lens[] = [
     blurb: "A former slave on what is and isn't yours to control",
     unlocks: ["control"],
     ideas: [
+      { text: "He taught that what upsets us is mostly the judgment we make about an event, not the event itself. Change the sentence you say to yourself and the same day weighs differently.", practices: ["advocate_reply", "evidence_file"] },
       { text: "Some things are up to us: our judgments, aims and choices. Others aren't: our bodies, reputations, and how things turn out. Peace comes from keeping the two lists straight.", practices: ["control", "grind", "enough_line"] },
       { text: "People are troubled less by things than by the views they take of them.", practices: ["grind", "control"] },
       { text: "He likened life to a game of dice or ball: the throw isn't yours to choose, but playing well whatever lands is. That isn't giving up. It's putting your effort where it counts.", practices: ["control", "win_thank", "grind"] },
@@ -84,6 +87,7 @@ export const LENSES: Lens[] = [
     blurb: "Peace as something you practise on ordinary days",
     unlocks: ["play"],
     ideas: [
+      { text: "He suggested holding a painful feeling the way you'd hold a crying child: gently, without fighting it, until it settles.", practices: ["self_friend"] },
       { text: "Look deeply at a sheet of paper and you'll find the cloud, the forest, the logger, the sun. He called this interbeing: nothing stands alone.", practices: ["invisible_chain", "win_thank"] },
       { text: "The present moment is the only place life can actually be touched, and the breath is the quickest way back to it.", practices: ["any", "play"] },
       { text: "Wash the dishes to wash the dishes, not as a hurdle before the real thing. The task is the real thing.", practices: ["play", "grind"] },
@@ -146,6 +150,7 @@ export const LENSES: Lens[] = [
     blurb: "Meaning as the engine, even under pressure",
     unlocks: ["control"],
     ideas: [
+      { text: "He saw people endure what seemed unendurable by holding onto a reason to keep going. When the critic gets loud, remind yourself of your why, not just your failures.", practices: ["evidence_file", "use_name"] },
       { text: "He saw meaning arriving in three ways: through what we do, through whom and what we love, and through the stance we take toward suffering we can't avoid.", practices: ["grind", "win_thank", "counted_days"] },
       { text: "Success and happiness can't be chased directly. They tend to follow from giving yourself to something larger than yourself.", practices: ["win_thank", "enough_line", "grind"] },
       { text: "Even when almost everything is taken, he argued, we keep one freedom: choosing our attitude toward what happens.", practices: ["control", "grind"] },

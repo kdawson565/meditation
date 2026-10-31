@@ -70,11 +70,12 @@ export default function MapPage() {
 
       <section aria-label="Quadrant map">
         <QuadrantMap days={days} mid={mid} selected={shown.id} onSelect={setSel} />
-        <p className="mt-2 text-xs text-muted">{mid.personal ? "Dividing lines are your own typical Drive and Peace." : "Dividing lines sit at 5.5 until you have two weeks of check-ins."}</p>
+        <p className="mt-2 text-xs text-muted">A ring around a dot means your Voice was 7 or higher that day: you were on your own side.</p>
+        <p className="mt-1 text-xs text-muted">{mid.personal ? "Dividing lines are your own typical Drive and Peace." : "Dividing lines sit at 5.5 until you have two weeks of check-ins."}</p>
         <div className="mt-4 rounded-2xl border border-line bg-surface p-5" aria-live="polite">
           <p className="text-sm text-muted">{formatLong(shown.localDate)}</p>
           <p className="mt-1 font-serif text-xl">
-            Drive {shown.drive} · Peace {shown.peace}{shown.peaceAfter ? ` → ${shown.peaceAfter}` : ""}
+            Drive {shown.drive} · Peace {shown.peace}{shown.peaceAfter ? ` → ${shown.peaceAfter}` : ""}{shown.voice != null ? ` · Voice ${shown.voice}` : ""}
           </p>
           <p className="text-[15px] text-muted">{QUADRANT_INFO[q].name}: {QUADRANT_INFO[q].line}</p>
           <Link href={`/archive?date=${shown.localDate}`} className="mt-2 inline-block text-[15px] text-brass-ink underline underline-offset-4">Read that day's entries</Link>

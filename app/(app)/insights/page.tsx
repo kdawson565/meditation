@@ -21,6 +21,10 @@ export default function InsightsPage() {
   const few = rows.filter((r) => r.n < 3);
   const totalPairs = rows.reduce((s, r) => s + r.n, 0);
   const worstDrive = enough.filter((r) => r.driveShift != null && r.driveShift <= -0.5);
+  const voiced = checkins!.filter((c) => c.voice != null);
+  const kind = voiced.filter((c) => c.voice! >= 7);
+  const harsh = voiced.filter((c) => c.voice! <= 6);
+  const mean = (xs: number[]) => (xs.reduce((a, b) => a + b, 0) / xs.length).toFixed(1);
   const answered = entries!.filter((e) => e.sailResult && !e.deletedAt && e.localDate >= new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10));
   const filled = answered.filter((e) => e.sailResult === "filled").length;
   const partly = answered.filter((e) => e.sailResult === "partly").length;
@@ -31,6 +35,20 @@ export default function InsightsPage() {
         <h1 className="font-serif text-3xl">What moves you</h1>
         <p className="mt-2 text-muted">How Peace and Drive changed between check-in and close, by practice. The goal is more Peace without dulling your edge.</p>
       </header>
+
+      <section aria-labelledby="s-voice" className="rounded-2xl border border-line p-5">
+        <h2 id="s-voice" className="font-serif text-xl">Your inner voice</h2>
+        {kind.length >= 3 && harsh.length >= 3 ? (
+          <>
+            <p className="mt-2 text-[15px]">
+              On the {kind.length} days your Voice was 7 or higher, Peace averaged {mean(kind.map((c) => c.peace))} and Drive {mean(kind.map((c) => c.drive))}. On the {harsh.length} harder days, Peace averaged {mean(harsh.map((c) => c.peace))} and Drive {mean(harsh.map((c) => c.drive))}.
+            </p>
+            <p className="mt-1 text-sm text-muted">A pattern from your own days, not proof of cause. Still worth noticing which way it points.</p>
+          </>
+        ) : (
+          <p className="mt-2 text-[15px] text-muted">Rate Voice for a few more days, some kinder and some harder, and this will show how your Peace and Drive move with it.</p>
+        )}
+      </section>
 
       {answered.length > 0 && (
         <section aria-labelledby="s-sail" className="rounded-2xl border border-line p-5">

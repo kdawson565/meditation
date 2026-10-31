@@ -31,12 +31,12 @@ export async function saveProfile(p: Partial<Profile>) {
   return next;
 }
 
-export async function saveCheckin(localDate: string, drive: number, peace: number): Promise<Checkin> {
+export async function saveCheckin(localDate: string, drive: number, peace: number, voice?: number): Promise<Checkin> {
   const t = now();
   const existing = await db.checkins.where("localDate").equals(localDate).first();
   const c: Checkin = existing
-    ? { ...existing, drive, peace, updatedAt: t, dirty: 1 }
-    : { id: uid(), localDate, drive, peace, createdAt: t, updatedAt: t, dirty: 1 };
+    ? { ...existing, drive, peace, voice: voice ?? existing.voice, updatedAt: t, dirty: 1 }
+    : { id: uid(), localDate, drive, peace, voice, createdAt: t, updatedAt: t, dirty: 1 };
   await db.checkins.put(c);
   scheduleSync();
   return c;
@@ -57,6 +57,11 @@ export async function saveEntry(e: Omit<Entry, "id" | "createdAt" | "updatedAt" 
 
 export async function setSailResult(entryId: string, sailResult: SailResult) {
   await db.entries.update(entryId, { sailResult, updatedAt: now(), dirty: 1 });
+  scheduleSync();
+}
+
+export async function setSailAdvocate(entryId: string, text: string) {
+  await db.entries.update(entryId, { sailAdvocate: text || undefined, updatedAt: now(), dirty: 1 });
   scheduleSync();
 }
 

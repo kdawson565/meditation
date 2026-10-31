@@ -66,12 +66,12 @@ const toRow = {
     notify: p.notify, ai_consent: p.aiConsent, theme: p.theme, timezone: p.timezone, lenses: p.lenses ?? [], updated_at: p.updatedAt,
   }),
   checkin: (c: Checkin, userId: string) => ({
-    id: c.id, user_id: userId, local_date: c.localDate, drive: c.drive, peace: c.peace,
+    id: c.id, user_id: userId, local_date: c.localDate, drive: c.drive, peace: c.peace, voice: c.voice ?? null,
     peace_after: c.peaceAfter ?? null, drive_after: c.driveAfter ?? null, created_at: c.createdAt, updated_at: c.updatedAt,
   }),
   entry: (e: Entry, userId: string) => ({
     id: e.id, user_id: userId, local_date: e.localDate, practice: e.practice, prompt: e.prompt,
-    fields: e.fields, body: e.body, tags: e.tags, sail: e.sail ?? null, floor: e.floor ?? null, sail_result: e.sailResult ?? null,
+    fields: e.fields, body: e.body, tags: e.tags, sail: e.sail ?? null, floor: e.floor ?? null, sail_result: e.sailResult ?? null, sail_advocate: e.sailAdvocate ?? null,
     checkin_id: e.checkinId ?? null, resurface_on: e.resurfaceOn ?? null, created_at: e.createdAt,
     updated_at: e.updatedAt, deleted_at: e.deletedAt ?? null,
   }),
@@ -127,7 +127,7 @@ export async function syncNow(): Promise<{ ok: boolean; message: string }> {
       const local = await db.checkins.get(r.id);
       if (local && local.updatedAt >= r.updated_at) continue;
       await db.checkins.put({
-        id: r.id, localDate: r.local_date, drive: r.drive, peace: r.peace, peaceAfter: r.peace_after ?? undefined, driveAfter: r.drive_after ?? undefined,
+        id: r.id, localDate: r.local_date, drive: r.drive, peace: r.peace, voice: r.voice ?? undefined, peaceAfter: r.peace_after ?? undefined, driveAfter: r.drive_after ?? undefined,
         createdAt: r.created_at, updatedAt: r.updated_at, dirty: 0,
       });
     }
@@ -136,7 +136,7 @@ export async function syncNow(): Promise<{ ok: boolean; message: string }> {
       if (local && local.updatedAt >= r.updated_at) continue;
       await db.entries.put({
         id: r.id, localDate: r.local_date, practice: r.practice, prompt: r.prompt, fields: r.fields ?? {},
-        body: r.body, tags: r.tags ?? [], sail: r.sail ?? undefined, floor: r.floor ?? undefined, sailResult: r.sail_result ?? undefined,
+        body: r.body, tags: r.tags ?? [], sail: r.sail ?? undefined, floor: r.floor ?? undefined, sailResult: r.sail_result ?? undefined, sailAdvocate: r.sail_advocate ?? undefined,
         checkinId: r.checkin_id ?? undefined, resurfaceOn: r.resurface_on ?? undefined,
         createdAt: r.created_at, updatedAt: r.updated_at, deletedAt: r.deleted_at ?? undefined, dirty: 0,
       });

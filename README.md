@@ -8,6 +8,8 @@ A quiet daily gratitude practice for people who want inner peace **and** high ac
 
 **Peace and drive:** yesterday's Sail is asked about once at the next check-in (filled / partly / not), and on a miss that day's Floor comes back. Insights shows your 30-day follow-through. Three drive practices (One honest move, Future pull, Whose hunger is this?) lead on calm-but-flat Harbor days. Dials start at 5 with a faint marker for your last check-in, so yesterday doesn't anchor today. A 2-minute short day (dials + one line) still counts.
 
+**Voice, the third pillar:** a daily Voice dial (Critic to Advocate) sits under Drive and Peace. Low Voice leads with four practices: Advocate's reply, Use your name (distanced self-talk), Evidence file, and Treat yourself like a friend (self-compassion). A missed Sail asks what your advocate would say. The map rings days with Voice of 7 or higher, Insights compares Peace and Drive on kinder versus harsher days, and the weekly reflection mentions the trend and can echo an advocate line, never a critic line. Distress checks also cover what you write in a practice.
+
 **Phase 3:** push reminders, AI-assisted practice picks, before/after insights ("What moves you") with Drive-after tracking, and an automated accessibility audit.
 
 **Phase 2:** the Ledger with Arrival Audit, Unsent Thanks with a draft helper, Weekly Reflection, and three more practices (Invisible Chain, Enough Line check, Counted Days, opt-in).

@@ -17,6 +17,7 @@ export function suggestPractice(opts: {
   mid: { drive: number; peace: number };
   countedDays?: boolean;
   hasEnough?: boolean;
+  voice?: number;
 }): Suggestion {
   const { drive, peace, today, entries, mid } = opts;
   const pool = availablePractices({ countedDays: !!opts.countedDays, hasEnough: !!opts.hasEnough });
@@ -32,6 +33,20 @@ export function suggestPractice(opts: {
     return { practice: "enough_line", reason: "It's been a couple of weeks since you looked at your Enough Line. Worth a check, hungry or not." };
   if (pool.includes("counted_days") && lastUsed("counted_days") >= 10 && peace >= 5)
     return { practice: "counted_days", reason: "You asked for these now and then. A gentle one, if the day has room." };
+
+  // A harsh inner voice comes first: it drags on both Peace and Drive.
+  if (opts.voice != null && opts.voice <= 4) {
+    const voiceRanked = ([
+      ["advocate_reply", "Your inner voice has been hard on you. This one answers it, honestly and from your side."],
+      ["evidence_file", "When the critic is loud, facts help more than pep talk. This one collects them."],
+      ["use_name", "A rough stretch for your inner voice. Talking yourself through it by name tends to steady things."],
+      ["self_friend", "Low Voice today. This one keeps your standards and drops the self-attack."],
+    ] as [PracticeId, string][])
+      .filter(([p]) => pool.includes(p))
+      .map(([p, reason]) => ({ p, reason, gap: lastUsed(p) }))
+      .sort((a, b) => b.gap - a.gap);
+    if (voiceRanked.length) return { practice: voiceRanked[0].p, reason: voiceRanked[0].reason };
+  }
 
   if (pool.includes("control") && lastUsed("control") >= 6 && (q === "grind" || q === "fog"))
     return { practice: "control", reason: "Drive is up and Peace is down, which is often a sign of carrying things that aren't yours to move. This one sorts them." };

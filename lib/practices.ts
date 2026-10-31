@@ -30,6 +30,8 @@ export interface Practice {
   showEnough?: boolean;
   /** only offered when the user has opted in (Settings → Counted Days) */
   optIn?: "countedDays";
+  /** never offered as a choice (e.g. the short day, which has its own flow) */
+  hidden?: boolean;
 }
 
 export const PRACTICES: Record<PracticeId, Practice> = {
@@ -76,6 +78,54 @@ export const PRACTICES: Record<PracticeId, Practice> = {
     prompt: "One line: something good, or what's next.",
     fields: [{ key: "line", label: "One line", placeholder: "Something good, or what's next…", required: true, isBody: true }],
     why: "On the busiest days, a short check-in keeps the habit going.",
+    hidden: true,
+  },
+  advocate_reply: {
+    id: "advocate_reply",
+    title: "Advocate's reply",
+    blurb: "Answer your inner critic, from your side",
+    prompt: "Write down one thing your inner critic said to you recently, word for word. Then answer it the way your best coach or most loyal friend would: honest, specific, on your side.",
+    fields: [
+      { key: "critic", label: "What the critic said, word for word", placeholder: "You always…", required: true },
+      { key: "advocate", label: "What your advocate says back", placeholder: "That's not the whole story. Here's what's true…", long: true, required: true, isBody: true },
+    ],
+    why: "The critic's lines usually go unchallenged. Writing a reply gives the other side a voice, and the reply gets easier to hear with practice.",
+  },
+  use_name: {
+    id: "use_name",
+    title: "Use your name",
+    blurb: "Coach yourself in the third person",
+    prompt: "Think of something hard coming up, or something that went badly. Talk yourself through it using your own name, the way a coach on your side would.",
+    fields: [
+      { key: "situation", label: "The hard thing", placeholder: "The meeting tomorrow, the call I dropped…", required: true },
+      { key: "talk", label: "Talk yourself through it, by name", placeholder: "{name}, you've handled harder than this…", long: true, required: true, isBody: true },
+    ],
+    subjectKey: "situation",
+    why: "Using your own name gives you a little distance, as if advising a friend. Studies of distanced self-talk (Kross et al., 2014) found it eased stress and helped people perform under pressure.",
+  },
+  evidence_file: {
+    id: "evidence_file",
+    title: "Evidence file",
+    blurb: "Facts against the critic",
+    prompt: "What is the critic telling you that you can't do? Write down three times you've already done something like it.",
+    fields: [
+      { key: "claim", label: "The critic says I can't…", placeholder: "…lead this, finish this, be good at this", required: true },
+      { key: "evidence", label: "Three times you already did something like it", placeholder: "1.\n2.\n3.", long: true, required: true, isBody: true },
+    ],
+    subjectKey: "claim",
+    why: "Belief built on your own track record holds better than pep talk. This keeps a file you can come back to.",
+  },
+  self_friend: {
+    id: "self_friend",
+    title: "Treat yourself like a friend",
+    blurb: "High standards, no self-attack",
+    prompt: "Name a recent setback or mistake. If a friend you respect had made it, what would you say to them? Now say it to yourself.",
+    fields: [
+      { key: "setback", label: "The setback", placeholder: "I missed…, I said…, I blew…", required: true },
+      { key: "friend", label: "What you'd tell a friend, said to yourself", placeholder: "Anyone carrying what you're carrying could slip here. What matters next is…", long: true, required: true, isBody: true },
+    ],
+    subjectKey: "setback",
+    why: "Self-compassion research (Kristin Neff) suggests kindness after a setback doesn't lower your standards. People who practise it tend to try again sooner.",
   },
   past_self: {
     id: "past_self",
@@ -195,7 +245,7 @@ export const PRACTICES: Record<PracticeId, Practice> = {
   },
 };
 
-export const PRACTICE_ORDER: PracticeId[] = ["past_self", "mental_subtraction", "win_thank", "grind", "invisible_chain", "enough_line", "counted_days", "play", "control", "one_move", "future_pull", "whose_hunger"];
+export const PRACTICE_ORDER: PracticeId[] = ["past_self", "mental_subtraction", "win_thank", "grind", "invisible_chain", "enough_line", "counted_days", "play", "control", "one_move", "future_pull", "whose_hunger", "advocate_reply", "use_name", "evidence_file", "self_friend"];
 
 export function availablePractices(opts: { countedDays: boolean; hasEnough: boolean }) {
   return PRACTICE_ORDER.filter((id) => {

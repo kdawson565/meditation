@@ -19,6 +19,13 @@ export function localReflection(days: Checkin[], entries: Entry[], lenses?: stri
     parts.push(`On the ${high.length} days Drive was 7 or above, Peace averaged ${pHigh.toFixed(1)}.`);
   }
 
+  const voiced = days.filter((c) => c.voice != null);
+  if (voiced.length >= 3) {
+    const v = avg(voiced.map((c) => c.voice!))!;
+    const kind = voiced.filter((c) => c.voice! >= 7);
+    parts.push(`Your Voice averaged ${v.toFixed(1)}${kind.length >= 2 ? `, and on the ${kind.length} days it was 7 or above, Peace averaged ${avg(kind.map((c) => c.peace))!.toFixed(1)} and Drive ${avg(kind.map((c) => c.drive))!.toFixed(1)}` : ""}.`);
+  }
+
   const tagPeace = new Map<string, number[]>();
   for (const e of entries) {
     const c = byDate.get(e.localDate);
@@ -37,7 +44,7 @@ export function localReflection(days: Checkin[], entries: Entry[], lenses?: stri
   }
   const practiceCounts = new Map<string, number>();
   entries.forEach((e) => practiceCounts.set(e.practice, (practiceCounts.get(e.practice) ?? 0) + 1));
-  const unused = Object.values(PRACTICES).find((x) => !practiceCounts.has(x.id) && !x.optIn && !x.showEnough);
+  const unused = Object.values(PRACTICES).find((x) => !practiceCounts.has(x.id) && !x.optIn && !x.showEnough && !x.hidden);
   if (unused) parts.push(`One thing to try next week: ${unused.title}. You haven't used it lately.`);
   const idea = pickIdea(lenses, "any", entries[0]?.localDate ?? "week");
   if (idea) parts.push(`In the spirit of ${idea.lens.name}: ${idea.idea.text}`);

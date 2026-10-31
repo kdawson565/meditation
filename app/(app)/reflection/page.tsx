@@ -35,7 +35,7 @@ export default function ReflectionPage() {
 
   if (!profile || !week || !past) return <div aria-busy="true" />;
   const current = past.find((r) => r.weekStart === weekStart);
-  const distress = suggestsDistress(week.entries.flatMap((e) => [e.body, ...Object.values(e.fields), e.sail ?? "", e.floor ?? ""]));
+  const distress = suggestsDistress(week.entries.flatMap((e) => [e.body, ...Object.values(e.fields), e.sail ?? "", e.floor ?? "", e.sailAdvocate ?? ""]));
 
   async function generate() {
     setBusy(true);
@@ -44,9 +44,9 @@ export default function ReflectionPage() {
     let source: "ai" | "local" = "local";
     if (profile!.aiConsent) {
       const r = await callAI<{ body: string }>("/api/ai/reflection", {
-        days: week!.days.map((c) => ({ date: c.localDate, drive: c.drive, peace: c.peace, peaceAfter: c.peaceAfter, driveAfter: c.driveAfter })),
+        days: week!.days.map((c) => ({ date: c.localDate, drive: c.drive, peace: c.peace, voice: c.voice, peaceAfter: c.peaceAfter, driveAfter: c.driveAfter })),
         lenses: pickLenses(profile!.lenses, 2, weekStart).map((l) => ({ name: l.name, ideas: l.ideas.slice(0, 5).map((i) => i.text) })),
-        entries: week!.entries.map((e) => ({ date: e.localDate, practice: e.practice, body: e.body, tags: e.tags, sail: e.sail, floor: e.floor })),
+        entries: week!.entries.map((e) => ({ date: e.localDate, practice: e.practice, body: e.body, tags: e.tags, sail: e.sail, floor: e.floor, advocate: e.sailAdvocate })),
       });
       if (r.ok) { body = r.data.body; source = "ai"; } else setNote(aiReasonText(r.reason));
     } else setNote("AI features are off, so this note was written on your device from your numbers. You can turn them on in Settings.");

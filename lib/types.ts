@@ -1,4 +1,4 @@
-export type PracticeId = "past_self" | "mental_subtraction" | "win_thank" | "grind" | "invisible_chain" | "counted_days" | "enough_line" | "play" | "control" | "one_move" | "future_pull" | "whose_hunger" | "short_day";
+export type PracticeId = "past_self" | "mental_subtraction" | "win_thank" | "grind" | "invisible_chain" | "counted_days" | "enough_line" | "play" | "control" | "one_move" | "future_pull" | "whose_hunger" | "short_day" | "advocate_reply" | "use_name" | "evidence_file" | "self_friend";
 
 export type SailResult = "filled" | "partly" | "not";
 
@@ -30,6 +30,8 @@ export interface Checkin {
   localDate: string; // YYYY-MM-DD, day rolls over at 4am
   drive: number;
   peace: number;
+  /** 1 = inner critic, 10 = inner advocate. Missing on check-ins from before Voice existed. */
+  voice?: number;
   peaceAfter?: number;
   driveAfter?: number;
   createdAt: string;
@@ -49,6 +51,8 @@ export interface Entry {
   floor?: string;
   /** answered at the next check-in: did yesterday's Sail fill? */
   sailResult?: SailResult;
+  /** on a missed Sail: what their advocate would say */
+  sailAdvocate?: string;
   checkinId?: string;
   resurfaceOn?: string; // YYYY-MM-DD
   createdAt: string;

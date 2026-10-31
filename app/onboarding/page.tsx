@@ -49,7 +49,7 @@ export default function Onboarding() {
             <p className="text-sm uppercase tracking-[0.2em] text-muted">Ballast</p>
             <h1 className="mt-4 font-serif text-4xl leading-tight">Feel full, and stay hungry.</h1>
             <p className="mt-5 font-serif text-xl leading-relaxed text-muted">
-              Gratitude isn't the opposite of ambition. It's ballast. The steadier you are, the more sail you can carry. A few quiet minutes a day, and nothing here will ever tell you to want less.
+              Gratitude isn't the opposite of ambition. It's ballast. The steadier you are, the more sail you can carry. Ballast trains three things together: peace, drive, and an inner voice that's on your side. A few quiet minutes a day, and nothing here will ever tell you to want less.
             </p>
             <Next onClick={() => setStep(1)} label="Begin" />
             <div className="mt-8 space-y-2 text-[15px]">

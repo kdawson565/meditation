@@ -8,7 +8,7 @@ import { PRACTICES, availablePractices } from "@/lib/practices";
 import { midlines } from "@/lib/quadrant";
 import { suggestPractice } from "@/lib/selection";
 import { pickResurfacing, type Resurfacing } from "@/lib/resurface";
-import { saveCheckin, saveEntry, setAfter, setSailResult } from "@/lib/store";
+import { saveCheckin, saveEntry, setAfter, setSailAdvocate, setSailResult } from "@/lib/store";
 import type { Entry, PracticeId, SailResult } from "@/lib/types";
 import BreathGate from "@/components/BreathGate";
 import DialSlider from "@/components/DialSlider";
@@ -19,6 +19,7 @@ import Nudges from "@/components/Nudges";
 import LensIdea from "@/components/LensIdea";
 import { callAI } from "@/lib/ai-client";
 import { practiceInsights } from "@/lib/insights";
+import { suggestsDistress } from "@/lib/safety";
 
 type Step = "dials" | "breath" | "practice" | "intention" | "short" | "close";
 
@@ -32,6 +33,8 @@ export default function TodayPage() {
   const [adding, setAdding] = useState(false);
   const [drive, setDrive] = useState<number | null>(null);
   const [peace, setPeace] = useState<number | null>(null);
+  const [voice, setVoice] = useState<number>(5);
+  const [distress, setDistress] = useState(false);
   const [practice, setPractice] = useState<PracticeId | null>(null);
   const [choosing, setChoosing] = useState(false);
   const [fields, setFields] = useState<Record<string, string>>({});
@@ -61,6 +64,7 @@ export default function TodayPage() {
     if (!checkins || drive !== null) return;
     setDrive(todayCheckin?.drive ?? 5);
     setPeace(todayCheckin?.peace ?? 5);
+    setVoice(todayCheckin?.voice ?? 5);
   }, [checkins, todayCheckin, drive]);
 
   // The most recent unanswered Sail from the last few days, asked about once at the next check-in.
@@ -72,8 +76,8 @@ export default function TodayPage() {
   useEffect(() => { if (openSail && !sailEntry) setSailEntry(openSail); }, [openSail, sailEntry]);
 
   const suggestion = useMemo(
-    () => (drive != null && peace != null && entries ? suggestPractice({ drive, peace, today, entries, mid, countedDays: profile?.countedDays, hasEnough: Object.values(profile?.enough ?? {}).some(Boolean) }) : null),
-    [drive, peace, entries, today, mid, profile],
+    () => (drive != null && peace != null && entries ? suggestPractice({ drive, peace, voice, today, entries, mid, countedDays: profile?.countedDays, hasEnough: Object.values(profile?.enough ?? {}).some(Boolean) }) : null),
+    [drive, peace, voice, entries, today, mid, profile],
   );
   const base = aiPick ?? suggestion;
   const activePractice = practice ?? base?.practice ?? "past_self";
@@ -100,7 +104,7 @@ export default function TodayPage() {
 
   async function finishShort() {
     setSaving(true);
-    const c = await saveCheckin(today, drive!, peace!);
+    const c = await saveCheckin(today, drive!, peace!, voice);
     const line = (fields.line ?? "").trim();
     await saveEntry({ localDate: today, practice: "short_day", prompt: PRACTICES.short_day.prompt, fields: { line }, body: line, tags: [], sail: sail.trim() || undefined, checkinId: c.id });
     setResurfaced(null);
@@ -112,7 +116,7 @@ export default function TodayPage() {
 
   async function finish(skipIntention = false) {
     setSaving(true);
-    const c = todayCheckin && !adding ? todayCheckin : await saveCheckin(today, drive!, peace!);
+    const c = todayCheckin && !adding ? todayCheckin : await saveCheckin(today, drive!, peace!, voice);
     const bodyKey = p.fields.find((f) => f.isBody)!.key;
     const clean = Object.fromEntries(Object.entries(fields).map(([k, v]) => [k, v.trim()]));
     const entry = await saveEntry({
@@ -127,6 +131,7 @@ export default function TodayPage() {
       checkinId: c.id,
       resurfaceOn: p.checkBack ? addMonths(today, p.checkBack[checkBack].months) : undefined,
     });
+    setDistress(suggestsDistress([...Object.values(clean), sail, floor]));
     const shown = await db.resurfaced.toArray();
     const r = pickResurfacing({ entries: await db.entries.toArray(), shown, today, peace: c.peace, enough: profile!.enough, excludeId: entry.id });
     if (r?.kind === "entry") await db.resurfaced.put({ entryId: r.entry.id, shownOn: today });
@@ -143,7 +148,7 @@ export default function TodayPage() {
         <Header name={profile.name} />
         <div>
           <h2 className="font-serif text-2xl">Today is logged.</h2>
-          <p className="mt-2 text-muted">Drive {todayCheckin?.drive} · Peace {todayCheckin?.peace}. That's enough for today, though you're welcome to add more.</p>
+          <p className="mt-2 text-muted">Drive {todayCheckin?.drive} · Peace {todayCheckin?.peace}{todayCheckin?.voice != null && ` · Voice ${todayCheckin.voice}`}. That's enough for today, though you're welcome to add more.</p>
         </div>
         {tide}
         <Nudges />
@@ -176,6 +181,11 @@ export default function TodayPage() {
           <p className="mt-2 text-muted">The tide is a little higher. Nothing else is needed from you today.</p>
         </div>
         {tide}
+        {distress && (
+          <aside role="note" className="rounded-2xl border border-brass bg-surface p-5">
+            <p className="font-serif text-lg leading-relaxed">Some of what you wrote sounded heavy. Ballast isn't a therapist and can't be there the way a person can. If this is more than a rough patch, please reach out to someone you trust, or a crisis line. In the US you can call or text 988.</p>
+          </aside>
+        )}
         {resurfaced && <ResurfacedCard r={resurfaced} />}
         <LensIdea lenses={profile.lenses} practice={p.id} seed={today} offset={1} variant="card" />
         {checkinId && (
@@ -210,19 +220,20 @@ export default function TodayPage() {
       <div className="fade-in space-y-8">
         <Header name={profile.name} />
         <Nudges />
-        {sailEntry && <SailCheck entry={sailEntry} today={today} answer={sailAnswer} onAnswer={(r) => { setSailAnswer(r); void setSailResult(sailEntry.id, r); }} />}
+        {sailEntry && <SailCheck entry={sailEntry} today={today} answer={sailAnswer} onAnswer={(r) => { setSailAnswer(r); void setSailResult(sailEntry.id, r); }} onAdvocate={(t) => void setSailAdvocate(sailEntry.id, t)} />}
         <DialSlider label="Drive" hint="How hungry, focused and in motion do you feel?" low="Idle" high="Charging" value={drive} onChange={setDrive} ghost={todayCheckin ? undefined : lastCheckin?.drive} />
         <DialSlider label="Peace" hint="How settled, present and “enough” do you feel?" low="Restless" high="Settled" value={peace} onChange={setPeace} ghost={todayCheckin ? undefined : lastCheckin?.peace} />
-        <p className="text-sm text-muted">Be honest. Neither number is better or worse. They're just a bearing.</p>
+        <DialSlider label="Voice" hint="How have you been talking to yourself: more critic, or more advocate?" low="Critic" high="Advocate" value={voice} onChange={setVoice} ghost={todayCheckin ? undefined : lastCheckin?.voice} />
+        <p className="text-sm text-muted">Be honest. There's no right answer for Drive or Peace. They're just a bearing. Voice is the one to grow, toward an inner voice that's on your side.</p>
         <button className="btn w-full sm:w-auto" onClick={async () => {
-          await saveCheckin(today, drive, peace);
+          await saveCheckin(today, drive, peace, voice);
           setStep("breath");
           // Ask Claude while the breath gate runs; if it doesn't answer in time, the rule-based pick stands.
           if (profile.aiConsent) {
             const avail = availablePractices({ countedDays: profile.countedDays, hasEnough: Object.values(profile.enough).some(Boolean) });
             void callAI<{ practice: PracticeId; reason: string }>("/api/ai/next-practice", {
-              drive, peace,
-              days: checkins.slice(-14).map((c) => ({ date: c.localDate, drive: c.drive, peace: c.peace, peaceAfter: c.peaceAfter, driveAfter: c.driveAfter })),
+              drive, peace, voice,
+              days: checkins.slice(-14).map((c) => ({ date: c.localDate, drive: c.drive, peace: c.peace, voice: c.voice, peaceAfter: c.peaceAfter, driveAfter: c.driveAfter })),
               history: entries.slice(-14).map((e) => ({ date: e.localDate, practice: e.practice })),
               available: avail.map((id) => ({ id, title: PRACTICES[id].title, blurb: PRACTICES[id].blurb })),
               insights: practiceInsights(checkins, entries, mid.peace).map((r) => ({ practice: r.practice, n: r.n, peaceLift: Number(r.peaceLift.toFixed(1)), driveShift: r.driveShift == null ? null : Number(r.driveShift.toFixed(1)) })),
@@ -247,7 +258,7 @@ export default function TodayPage() {
       <div className="fade-in space-y-7">
         <div>
           <h1 className="font-serif text-3xl">Short day</h1>
-          <p className="mt-2 text-muted">Drive {drive} · Peace {peace}. One line is enough. It still counts.</p>
+          <p className="mt-2 text-muted">Drive {drive} · Peace {peace} · Voice {voice}. One line is enough. It still counts.</p>
         </div>
         <div>
           <label htmlFor="f-line" className="mb-2 block text-[15px]">{PRACTICES.short_day.prompt}</label>
@@ -311,9 +322,9 @@ export default function TodayPage() {
               {f.label} {!f.required && <span className="text-muted">(optional)</span>}
             </label>
             {f.long ? (
-              <textarea id={`f-${f.key}`} rows={6} className="field serif" placeholder={f.placeholder} value={fields[f.key] ?? ""} onChange={(e) => setFields({ ...fields, [f.key]: e.target.value })} />
+              <textarea id={`f-${f.key}`} rows={6} className="field serif" placeholder={f.placeholder?.replace("{name}", profile.name || "You")} value={fields[f.key] ?? ""} onChange={(e) => setFields({ ...fields, [f.key]: e.target.value })} />
             ) : (
-              <input id={`f-${f.key}`} className="field serif" placeholder={f.placeholder} value={fields[f.key] ?? ""} onChange={(e) => setFields({ ...fields, [f.key]: e.target.value })} />
+              <input id={`f-${f.key}`} className="field serif" placeholder={f.placeholder?.replace("{name}", profile.name || "You")} value={fields[f.key] ?? ""} onChange={(e) => setFields({ ...fields, [f.key]: e.target.value })} />
             )}
           </div>
         ))}
@@ -373,7 +384,9 @@ export default function TodayPage() {
 const SAIL_CHOICES: [SailResult, string][] = [["filled", "Filled"], ["partly", "Partly"], ["not", "Not this time"]];
 
 /** Closes the loop on the last Sail. On a miss, the Floor written that day comes back, so a miss lands softly. */
-function SailCheck({ entry, today, answer, onAnswer }: { entry: Entry; today: string; answer: SailResult | null; onAnswer: (r: SailResult) => void }) {
+function SailCheck({ entry, today, answer, onAnswer, onAdvocate }: { entry: Entry; today: string; answer: SailResult | null; onAnswer: (r: SailResult) => void; onAdvocate: (text: string) => void }) {
+  const [advocate, setAdvocate] = useState(entry.sailAdvocate ?? "");
+  const [kept, setKept] = useState(false);
   const when = entry.localDate === addDays(today, -1) ? "Yesterday's Sail" : "Your last Sail";
   return (
     <section aria-labelledby="sail-check" className="space-y-3 rounded-2xl border border-line p-5">
@@ -391,6 +404,16 @@ function SailCheck({ entry, today, answer, onAnswer }: { entry: Entry; today: st
         <p className="text-[15px] text-muted">
           {entry.floor ? <>Your Floor held either way: <span className="font-serif text-ink">{entry.floor}</span></> : "Noted. A Sail is a direction, not a verdict."}
         </p>
+      )}
+      {answer && answer !== "filled" && (
+        <div>
+          <label htmlFor="sail-advocate" className="mb-2 block text-[15px]">What would your advocate say? <span className="text-muted">(optional)</span></label>
+          <input id="sail-advocate" className="field serif" value={advocate} placeholder="You moved it forward. Here's what's next…"
+            onChange={(e) => { setAdvocate(e.target.value); setKept(false); }}
+            onBlur={() => { if (advocate.trim() !== (entry.sailAdvocate ?? "")) { onAdvocate(advocate.trim()); setKept(true); } }}
+            onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />
+          {kept && <p className="mt-1 text-sm text-muted" aria-live="polite">Kept.</p>}
+        </div>
       )}
     </section>
   );
