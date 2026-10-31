@@ -4,7 +4,7 @@ A quiet daily gratitude practice for people who want inner peace **and** high ac
 
 **Phase 1:** onboarding, the daily ritual (two dials, breath gate, practice, Floor & Sail, close with resurfacing), Archive, the Drive/Peace Map with the tide line, export, deletion, installable offline PWA, optional Supabase sync.
 
-**Lenses:** choose up to three thinkers (Alan Watts, Marcus Aurelius, Seneca, Epictetus, Thich Nhat Hanh, Lao Tzu, Zhuangzi, Epicurus, Thoreau, Viktor Frankl, Naval Ravikant). Short ideas from them appear under practice prompts and on the close screen, and the weekly reflection can frame its suggestion in their spirit. Some lenses unlock extra practices ("Play, not progress", "What's yours to steer"). All lens content is hand-written paraphrase in `lib/lenses.ts`, labelled as such, never quotation.
+**Thinkers:** all eleven (Alan Watts, Marcus Aurelius, Seneca, Epictetus, Thich Nhat Hanh, Lao Tzu, Zhuangzi, Epicurus, Thoreau, Viktor Frankl, Naval Ravikant) are always woven in. Short ideas from them appear under practice prompts and on the close screen, and the weekly reflection frames its suggestion in the spirit of two rotating voices. Users can mark any number of favorites, who come up three times as often. "Play, not progress" and "What's yours to steer" are open to everyone. All content is hand-written paraphrase in `lib/lenses.ts`, labelled as such, never quotation.
 
 **Phase 3:** push reminders, AI-assisted practice picks, before/after insights ("What moves you") with Drive-after tracking, and an automated accessibility audit.
 

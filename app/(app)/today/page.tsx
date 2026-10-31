@@ -63,7 +63,7 @@ export default function TodayPage() {
   }, [checkins, todayCheckin, drive]);
 
   const suggestion = useMemo(
-    () => (drive != null && peace != null && entries ? suggestPractice({ drive, peace, today, entries, mid, countedDays: profile?.countedDays, hasEnough: Object.values(profile?.enough ?? {}).some(Boolean), lenses: profile?.lenses }) : null),
+    () => (drive != null && peace != null && entries ? suggestPractice({ drive, peace, today, entries, mid, countedDays: profile?.countedDays, hasEnough: Object.values(profile?.enough ?? {}).some(Boolean) }) : null),
     [drive, peace, entries, today, mid, profile],
   );
   const base = aiPick ?? suggestion;
@@ -197,7 +197,7 @@ export default function TodayPage() {
           setStep("breath");
           // Ask Claude while the breath gate runs; if it doesn't answer in time, the rule-based pick stands.
           if (profile.aiConsent) {
-            const avail = availablePractices({ countedDays: profile.countedDays, hasEnough: Object.values(profile.enough).some(Boolean), lenses: profile.lenses });
+            const avail = availablePractices({ countedDays: profile.countedDays, hasEnough: Object.values(profile.enough).some(Boolean) });
             void callAI<{ practice: PracticeId; reason: string }>("/api/ai/next-practice", {
               drive, peace,
               days: checkins.slice(-14).map((c) => ({ date: c.localDate, drive: c.drive, peace: c.peace, peaceAfter: c.peaceAfter, driveAfter: c.driveAfter })),
@@ -236,7 +236,7 @@ export default function TodayPage() {
           </button>
           {choosing && (
             <ul className="mt-2 grid gap-2">
-              {availablePractices({ countedDays: profile.countedDays, hasEnough: Object.values(profile.enough).some(Boolean), lenses: profile.lenses }).map((id) => (
+              {availablePractices({ countedDays: profile.countedDays, hasEnough: Object.values(profile.enough).some(Boolean) }).map((id) => (
                 <li key={id}>
                   <button className={`w-full rounded-xl border px-4 py-3 text-left transition-colors duration-calm ${id === activePractice ? "border-deep" : "border-line hover:border-muted"}`} onClick={() => { setPractice(id); setFields({}); setChoosing(false); }}>
                     <span className="font-medium">{PRACTICES[id].title}</span>

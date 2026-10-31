@@ -164,13 +164,19 @@ export const LENSES: Lens[] = [
   },
 ];
 
-export const MAX_LENSES = 3;
 export const lensById = (id: string) => LENSES.find((l) => l.id === id);
 
+/** Every thinker is always in play. A favorite just comes up this many times as often. */
+const FAVORITE_WEIGHT = 3;
+
+/** FNV-1a with a final avalanche, so neighbouring dates land far apart in the pool. */
 function hash(s: string) {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
-  return Math.abs(h);
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 0x01000193);
+  h ^= h >>> 16;
+  h = Math.imul(h, 0x85ebca6b);
+  h ^= h >>> 13;
+  return h >>> 0;
 }
 
 export interface PickedIdea {
@@ -179,12 +185,29 @@ export interface PickedIdea {
 }
 
 /** Deterministic per day, so reopening the app shows the same idea. `offset` lets the close screen show a different one than the practice screen. */
-export function pickIdea(lensIds: string[] | undefined, practice: PracticeId | "any", seed: string, offset = 0): PickedIdea | null {
-  const lenses = (lensIds ?? []).map(lensById).filter((l): l is Lens => !!l);
-  if (!lenses.length) return null;
-  const pool: PickedIdea[] = [];
-  for (const lens of lenses) for (const idea of lens.ideas) if (idea.practices.includes(practice)) pool.push({ lens, idea });
-  if (!pool.length) for (const lens of lenses) for (const idea of lens.ideas) if (idea.practices.includes("any")) pool.push({ lens, idea });
+export function pickIdea(favorites: string[] | undefined, practice: PracticeId | "any", seed: string, offset = 0): PickedIdea | null {
+  const fav = new Set(favorites ?? []);
+  const build = (tag: PracticeId | "any") => {
+    const pool: PickedIdea[] = [];
+    for (const lens of LENSES) for (const idea of lens.ideas) if (tag === "any" || idea.practices.includes(tag)) for (let k = 0; k < (fav.has(lens.id) ? FAVORITE_WEIGHT : 1); k++) pool.push({ lens, idea });
+    return pool;
+  };
+  const pool = build(practice).length ? build(practice) : build("any");
   if (!pool.length) return null;
   return pool[(hash(seed + practice) + offset) % pool.length];
+}
+
+/** A rotating handful of thinkers (favorites weighted), without repeats. Used so the weekly reflection speaks in a couple of voices, not eleven. */
+export function pickLenses(favorites: string[] | undefined, n: number, seed: string): Lens[] {
+  const fav = new Set(favorites ?? []);
+  const left = LENSES.flatMap((l) => Array(fav.has(l.id) ? FAVORITE_WEIGHT : 1).fill(l) as Lens[]);
+  const out: Lens[] = [];
+  let h = hash(seed);
+  while (out.length < n && left.length) {
+    const pick = left[h % left.length];
+    out.push(pick);
+    for (let i = left.length - 1; i >= 0; i--) if (left[i].id === pick.id) left.splice(i, 1);
+    h = hash(String(h) + seed);
+  }
+  return out;
 }

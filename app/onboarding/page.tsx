@@ -86,10 +86,10 @@ export default function Onboarding() {
         )}
         {step === 3 && (
           <>
-            <h1 className="font-serif text-3xl">Whose ideas keep you steady?</h1>
-            <p className="mt-3 text-muted">Pick up to three. Ballast will weave short ideas from them into your practice, always in its own words and never as a quotation. Optional, and you can change it any time.</p>
+            <h1 className="font-serif text-3xl">Eleven voices, all in the room</h1>
+            <p className="mt-3 text-muted">Ballast weaves short ideas from all of these thinkers into your practice, always in its own words and never as a quotation. Anyone you'd like to hear from more often? Tap as many as you like. Optional, and you can change it any time.</p>
             <div className="mt-6"><LensPicker value={lenses} onChange={setLenses} /></div>
-            <Next onClick={() => setStep(4)} label={lenses.length ? "Continue" : "Skip for now"} />
+            <Next onClick={() => setStep(4)} label="Continue" />
           </>
         )}
         {step === 4 && (

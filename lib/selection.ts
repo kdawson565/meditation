@@ -17,10 +17,9 @@ export function suggestPractice(opts: {
   mid: { drive: number; peace: number };
   countedDays?: boolean;
   hasEnough?: boolean;
-  lenses?: string[];
 }): Suggestion {
   const { drive, peace, today, entries, mid } = opts;
-  const pool = availablePractices({ countedDays: !!opts.countedDays, hasEnough: !!opts.hasEnough, lenses: opts.lenses });
+  const pool = availablePractices({ countedDays: !!opts.countedDays, hasEnough: !!opts.hasEnough });
   const q = quadrantOf(drive, peace, mid);
 
   const lastUsed = (p: PracticeId) => {

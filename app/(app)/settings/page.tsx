@@ -102,8 +102,8 @@ export default function SettingsPage() {
       </section>
 
       <section aria-labelledby="s-lens" className="space-y-3">
-        <h2 id="s-lens" className="font-serif text-xl">Your lenses</h2>
-        <p className="text-[15px] text-muted">Thinkers whose ideas get woven into your practice, in Ballast's own words. Some lenses unlock extra practices.</p>
+        <h2 id="s-lens" className="font-serif text-xl">Your thinkers</h2>
+        <p className="text-[15px] text-muted">All eleven are woven into your practice, in Ballast's own words. Mark any favorites, as many as you like, and they'll come up more often.</p>
         <LensPicker value={profile.lenses ?? []} onChange={(ids) => void saveProfile({ lenses: ids })} />
       </section>
 
