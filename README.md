@@ -10,6 +10,8 @@ A quiet daily gratitude practice for people who want inner peace **and** high ac
 
 **Voice, the third pillar:** a daily Voice dial (Critic to Advocate) sits under Drive and Peace. Low Voice leads with four practices: Advocate's reply, Use your name (distanced self-talk), Evidence file, and Treat yourself like a friend (self-compassion). A missed Sail asks what your advocate would say. The map rings days with Voice of 7 or higher, Insights compares Peace and Drive on kinder versus harsher days, and the weekly reflection mentions the trend and can echo an advocate line, never a critic line. Distress checks also cover what you write in a practice.
 
+**Brand:** route 02 "Level line": sail with a sliver of mast (drive), level line (peace), brass weight below (voice). Geometry lives in `lib/brand.json`; `node scripts/make-icons.mjs` regenerates every icon and `public/brand/` (symbol SVG/PNGs, 1024 app icon). `components/Logo.tsx` renders the mark plus the Jost wordmark, optionally with "i am". Bump `VERSION` in `public/sw.js` whenever icons change.
+
 **Phase 3:** push reminders, AI-assisted practice picks, before/after insights ("What moves you") with Drive-after tracking, and an automated accessibility audit.
 
 **Phase 2:** the Ledger with Arrival Audit, Unsent Thanks with a draft helper, Weekly Reflection, and three more practices (Invisible Chain, Enough Line check, Counted Days, opt-in).

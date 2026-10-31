@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { cloudConfigured, supabase } from "@/lib/supabase";
 import { syncNow } from "@/lib/sync";
+import Logo from "@/components/Logo";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -24,7 +25,8 @@ export default function Login() {
   }
   return (
     <main className="mx-auto min-h-dvh max-w-xl px-5 py-12">
-      <h1 className="font-serif text-3xl">Sign in</h1>
+      <Logo size="sm" />
+      <h1 className="mt-8 font-serif text-3xl">Sign in</h1>
       <p className="mt-3 text-muted">We'll email you a link and a 6-digit code. No password.</p>
       <form className="mt-6 space-y-4" onSubmit={async (e) => {
         e.preventDefault();

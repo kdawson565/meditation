@@ -6,6 +6,7 @@ import Link from "next/link";
 import { saveProfile, emptyEnough } from "@/lib/store";
 import { loadSample } from "@/lib/seed";
 import LensPicker from "@/components/LensPicker";
+import Logo from "@/components/Logo";
 import { cloudConfigured } from "@/lib/supabase";
 import type { EnoughLine } from "@/lib/types";
 
@@ -46,7 +47,7 @@ export default function Onboarding() {
       <div className="fade-in" key={step}>
         {step === 0 && (
           <>
-            <p className="text-sm uppercase tracking-[0.2em] text-muted">Ballast</p>
+            <Logo size="lg" affirmation />
             <h1 className="mt-4 font-serif text-4xl leading-tight">Feel full, and stay hungry.</h1>
             <p className="mt-5 font-serif text-xl leading-relaxed text-muted">
               Gratitude isn't the opposite of ambition. It's ballast. The steadier you are, the more sail you can carry. Ballast trains three things together: peace, drive, and an inner voice that's on your side. A few quiet minutes a day, and nothing here will ever tell you to want less.
