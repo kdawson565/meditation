@@ -57,6 +57,16 @@ const SAMPLE_VALUES: { name: string; definition: string; evidence: string[] }[] 
   { name: "Integrity", definition: "What I say in the room matches what I do after.", evidence: ["Told the board the number was soft before they found out.", "Gave Elena the credit in the all-hands. It was hers.", "Said no to the deal that looked good and felt wrong."] },
   { name: "Growth", definition: "I try one thing I'm not yet good at.", evidence: ["Ran the finance review myself instead of handing it off.", "Asked for blunt feedback on the talk and took notes.", "Spent the commute on Spanish instead of the inbox."] },
 ];
+// Value practices, mixed in once values arrive. Value fields hold the value's name.
+const VALUE_SAMPLES: Sample[] = [
+  { practice: "lived_value", fields: { who: "Priya", value: "Integrity", what: "She told the client our timeline was wrong before they asked. Cost us a week of awkwardness and bought us their trust." }, tags: ["people", "work"] },
+  { practice: "values_conflict", fields: { a: "Growth", b: "Family", asks: "Growth wants the late nights on the launch. Family wants me home by six, phone off.", move: "Launch work moves to 6–8am. Home by six. One late night, Thursday, agreed with Jo in advance." }, tags: ["family", "work"] },
+  { practice: "held_value", fields: { value: "Integrity", have: "Because I didn't fudge the numbers last spring, the board believes me now when I say we're fine. That's worth more than the round." }, tags: ["work"] },
+  { practice: "win_thank", fields: { win: "Shipped the redesign on time", thanks: "Elena held the line on scope. My wife covered two bedtimes. The beta users wrote back with real notes.", value: "Craft" }, tags: ["work", "people"], sail: "Clean up the launch notes" },
+  { practice: "easier_self", fields: { what: "A quiet hour before anyone was up, and having decided last night what the one thing was." }, tags: ["home"] },
+  { practice: "values_not_outcomes", fields: { result: "Didn't get the partnership", value: "Craft", how: "The proposal was the best work we've done. I'd send the same one again. They chose a cheaper vendor, and that's theirs to choose." }, tags: ["work"] },
+];
+
 const TAG_VALUE: Record<string, string> = { family: "Family", home: "Family", work: "Craft", craft: "Craft", people: "Integrity", luck: "Presence", health: "Growth", body: "Growth", money: "Growth" };
 
 export async function loadSample(name = "Sam") {
@@ -70,6 +80,7 @@ export async function loadSample(name = "Sam") {
 
   const DAYS = 52;
   let sampleIdx = 0;
+  let valueIdx = 0;
   for (let i = DAYS; i >= 1; i--) {
     // skip some days: missing a day never matters
     if (rand() < 0.2) continue;
@@ -95,7 +106,7 @@ export async function loadSample(name = "Sam") {
     }
     checkins.push({ id, localDate: date, drive, peace, voice, peaceAfter: afterBoost ? clamp(peace + afterBoost) : undefined, driveAfter: afterBoost ? clamp(drive + (rand() < 0.2 ? -1 : 0)) : undefined, floorValueId: carried?.id, evidence, createdAt: ts, updatedAt: ts, dirty: 0 });
 
-    const s = SAMPLES[sampleIdx++ % SAMPLES.length];
+    const s = valuesOn && rand() < 0.3 ? VALUE_SAMPLES[valueIdx++ % VALUE_SAMPLES.length] : SAMPLES[sampleIdx++ % SAMPLES.length];
     const p = PRACTICES[s.practice];
     const bodyKey = p.fields.find((f) => f.isBody)!.key;
     const resurfaceOn = s.practice === "grind" ? addMonths(date, [3, 6, 12][sampleIdx % 3]) : undefined;

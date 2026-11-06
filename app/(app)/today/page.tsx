@@ -90,9 +90,15 @@ export default function TodayPage() {
   const [sailEntry, setSailEntry] = useState<Entry | null>(null);
   useEffect(() => { if (openSail && !sailEntry) setSailEntry(openSail); }, [openSail, sailEntry]);
 
+  // A setback: the latest Sail from the last few days didn't land. "Values, not outcomes" fits that morning.
+  const setback = useMemo(() => {
+    const last = [...(entries ?? [])].filter((e) => e.sail && !e.deletedAt && e.localDate < today && e.localDate >= addDays(today, -3)).sort((a, b) => (a.localDate < b.localDate ? 1 : -1))[0];
+    return last?.sailResult === "not";
+  }, [entries, today]);
+
   const suggestion = useMemo(
-    () => (drive != null && peace != null && entries ? suggestPractice({ drive, peace, voice, today, entries, mid, unsureSails: unsureSails(entries, addDays(today, -14)), countedDays: profile?.countedDays, hasEnough: Object.values(profile?.enough ?? {}).some(Boolean) }) : null),
-    [drive, peace, voice, entries, today, mid, profile],
+    () => (drive != null && peace != null && entries ? suggestPractice({ drive, peace, voice, today, entries, mid, unsureSails: unsureSails(entries, addDays(today, -14)), setback, hasValues: values.length > 0, countedDays: profile?.countedDays, hasEnough: Object.values(profile?.enough ?? {}).some(Boolean) }) : null),
+    [drive, peace, voice, entries, today, mid, profile, setback, values],
   );
   const base = aiPick ?? suggestion;
   const activePractice = practice ?? base?.practice ?? "past_self";
@@ -109,7 +115,8 @@ export default function TodayPage() {
   const tideLabel = daysPracticed === 0 ? "The tide is out. No pressure." : `${daysPracticed} ${daysPracticed === 1 ? "day" : "days"} practiced this month`;
   const tide = <TideLine level={daysPracticed / daysInMonth(today)} label={tideLabel} />;
 
-  const requiredOk = p.fields.every((f) => !f.required || (fields[f.key] ?? "").trim());
+  const shownFields = p.fields.filter((f) => f.kind !== "value" || values.length > 0);
+  const requiredOk = shownFields.every((f) => !f.required || (fields[f.key] ?? "").trim());
 
   const beginPractice = () => {
     setPractice(null);
@@ -257,9 +264,9 @@ export default function TodayPage() {
           setStep("breath");
           // Ask Claude while the breath gate runs; if it doesn't answer in time, the rule-based pick stands.
           if (profile.aiConsent) {
-            const avail = availablePractices({ countedDays: profile.countedDays, hasEnough: Object.values(profile.enough).some(Boolean) });
+            const avail = availablePractices({ countedDays: profile.countedDays, hasEnough: Object.values(profile.enough).some(Boolean), hasValues: values.length > 0 });
             void callAI<{ practice: PracticeId; reason: string }>("/api/ai/next-practice", {
-              drive, peace, voice,
+              drive, peace, voice, setback,
               days: checkins.slice(-14).map((c) => ({ date: c.localDate, drive: c.drive, peace: c.peace, voice: c.voice, peaceAfter: c.peaceAfter, driveAfter: c.driveAfter })),
               history: entries.slice(-14).map((e) => ({ date: e.localDate, practice: e.practice })),
               available: avail.map((id) => ({ id, title: PRACTICES[id].title, blurb: PRACTICES[id].blurb })),
@@ -324,7 +331,7 @@ export default function TodayPage() {
           </button>
           {choosing && (
             <ul className="mt-2 grid gap-2">
-              {availablePractices({ countedDays: profile.countedDays, hasEnough: Object.values(profile.enough).some(Boolean) }).map((id) => (
+              {availablePractices({ countedDays: profile.countedDays, hasEnough: Object.values(profile.enough).some(Boolean), hasValues: values.length > 0 }).map((id) => (
                 <li key={id}>
                   <button className={`w-full rounded-xl border px-4 py-3 text-left transition-colors duration-calm ${id === activePractice ? "border-deep" : "border-line hover:border-muted"}`} onClick={() => { setPractice(id); setFields({}); setChoosing(false); }}>
                     <span className="font-medium">{PRACTICES[id].title}</span>
@@ -344,7 +351,20 @@ export default function TodayPage() {
           </ul>
         )}
 
-        {p.fields.map((f) => (
+        {p.showValues && values.length > 0 && (
+          <ul className="space-y-1 rounded-2xl border border-line bg-surface p-4 text-[15px] leading-relaxed" aria-label="Your values">
+            {values.map((v) => (
+              <li key={v.id}><span className="font-medium">{v.name}</span>{v.definition && <span className="font-serif text-muted">: {v.definition}</span>}</li>
+            ))}
+          </ul>
+        )}
+
+        {shownFields.map((f) => f.kind === "value" ? (
+          <div key={p.id + f.key}>
+            <p id={`f-${f.key}`} className="mb-2 text-[15px]">{f.label} {!f.required && <span className="text-muted">(optional)</span>}</p>
+            <ValueChips values={[]} extra={values.map((v) => ({ id: v.name, name: v.name }))} value={fields[f.key] || undefined} label={f.label} onChange={(name) => setFields({ ...fields, [f.key]: name ?? "" })} />
+          </div>
+        ) : (
           <div key={p.id + f.key}>
             <label htmlFor={`f-${f.key}`} className="mb-2 block text-[15px]">
               {f.label} {!f.required && <span className="text-muted">(optional)</span>}

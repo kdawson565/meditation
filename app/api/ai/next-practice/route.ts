@@ -8,15 +8,16 @@ export async function POST(req: Request) {
   if (blocked) return blocked;
   const raw = await req.text();
   if (raw.length > 30_000) return Response.json({ error: "too_large" }, { status: 413 });
-  let b: { drive?: number; peace?: number; voice?: number; days?: Day[]; history?: { date: string; practice: string }[]; available?: { id: string; title: string; blurb: string }[]; insights?: { practice: string; n: number; peaceLift: number; driveShift: number | null }[] };
+  let b: { drive?: number; peace?: number; voice?: number; setback?: boolean; days?: Day[]; history?: { date: string; practice: string }[]; available?: { id: string; title: string; blurb: string }[]; insights?: { practice: string; n: number; peaceLift: number; driveShift: number | null }[] };
   try { b = JSON.parse(raw); } catch { return Response.json({ error: "bad_request" }, { status: 400 }); }
-  const available = (b.available ?? []).slice(0, 16).map((a) => ({ id: clip(a.id, 40), title: clip(a.title, 60), blurb: clip(a.blurb, 100) }));
+  const available = (b.available ?? []).slice(0, 24).map((a) => ({ id: clip(a.id, 40), title: clip(a.title, 60), blurb: clip(a.blurb, 100) }));
   if (!available.length) return Response.json({ error: "bad_request" }, { status: 400 });
 
-  const system = `You choose today's gratitude practice for someone using Ballast, an app for ambitious people who want to feel full while still hungry. They rate Drive (hungry, focused), Peace (settled, "enough") and Voice (1 = harsh inner critic, 10 = inner advocate) daily. The goal is to raise Peace and Voice without lowering Drive. When Voice is 4 or below, prefer a Voice practice (advocate_reply, use_name, evidence_file, self_friend) if one is available. Never encourage wanting less.
+  const system = `You choose today's gratitude practice for someone using Ballast, an app for ambitious people who want to feel full while still hungry. They rate Drive (hungry, focused), Peace (settled, "enough") and Voice (1 = harsh inner critic, 10 = inner advocate) daily. The goal is to raise Peace and Voice without lowering Drive. When Voice is 4 or below, prefer a Voice practice (advocate_reply, use_name, evidence_file, self_friend) if one is available. If lastSailMissed is true and values_not_outcomes is available, it is usually the right pick. Value practices (lived_value, easier_self, held_value, values_conflict, drift_check, values_not_outcomes) only appear when the person has chosen values. Never encourage wanting less, and never judge a goal.
 Pick exactly ONE practice from the available list, using their dials, the recent trend, what they've practiced lately (avoid repeating the last two days; favour variety), and, if present, the before/after Peace and Drive changes per practice (treat small samples as weak hints).
 Reply with ONLY a JSON object: {"practice":"<id from the list>","reason":"<one plain sentence, under 28 words, speaking to them as 'you', specific to their numbers or recent practice, no flattery, no therapy language>"}`;
   const user = JSON.stringify({
+    lastSailMissed: !!b.setback,
     todayDials: { drive: Number(b.drive) | 0, peace: Number(b.peace) | 0, voice: b.voice == null ? null : Number(b.voice) | 0 },
     recentDays: (b.days ?? []).slice(-14),
     recentPractices: (b.history ?? []).slice(-14).map((h) => ({ date: clip(h.date, 10), practice: clip(h.practice, 40) })),

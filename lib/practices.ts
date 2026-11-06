@@ -13,6 +13,8 @@ export interface Field {
   long?: boolean;
   /** this field's text becomes the entry body (searchable, shown large) */
   isBody?: boolean;
+  /** "value": pick one of the person's core values (stored as its name). Hidden when no values are set. */
+  kind?: "value";
 }
 
 export interface Practice {
@@ -32,6 +34,10 @@ export interface Practice {
   optIn?: "countedDays";
   /** never offered as a choice (e.g. the short day, which has its own flow) */
   hidden?: boolean;
+  /** only offered once the person has chosen values */
+  needsValues?: boolean;
+  /** show the person's values and definitions above the form */
+  showValues?: boolean;
 }
 
 export const PRACTICES: Record<PracticeId, Practice> = {
@@ -159,9 +165,10 @@ export const PRACTICES: Record<PracticeId, Practice> = {
     fields: [
       { key: "win", label: "The win", placeholder: "Don't shrink it. Say it plainly.", required: true },
       { key: "thanks", label: "Who or what made it possible?", placeholder: "A person, a circumstance, a lucky break…", long: true, required: true, isBody: true },
+      { key: "value", label: "Which of your values did this win express?", kind: "value" },
     ],
     subjectKey: "win",
-    why: "The win stays exactly as big. You just see what's underneath it.",
+    why: "The win stays exactly as big. You just see what's underneath it, and what it was for.",
   },
   grind: {
     id: "grind",
@@ -230,6 +237,90 @@ export const PRACTICES: Record<PracticeId, Practice> = {
     subjectKey: "weight",
     why: "Effort goes further when it's aimed at the part you can actually move, and the rest can get a little lighter.",
   },
+  lived_value: {
+    id: "lived_value",
+    title: "Lived in front of you",
+    blurb: "Someone who showed you one of your values",
+    needsValues: true,
+    showValues: true,
+    prompt: "Who lived one of your values in front of you today?",
+    fields: [
+      { key: "who", label: "Who was it?", placeholder: "A colleague, a stranger, your kid…", required: true },
+      { key: "value", label: "Which value?", kind: "value" },
+      { key: "what", label: "What did they do?", placeholder: "I watched them…", long: true, required: true, isBody: true },
+    ],
+    subjectKey: "who",
+    why: "Values are easier to see in other people than in yourself. Noticing them out in the world keeps them from becoming slogans.",
+  },
+  easier_self: {
+    id: "easier_self",
+    title: "Easier to be yourself",
+    blurb: "What made room for you today",
+    needsValues: true,
+    prompt: "What made it easier to be yourself today?",
+    fields: [
+      { key: "what", label: "What made it easier?", placeholder: "A person, a quiet hour, a decision I'd already made…", long: true, required: true, isBody: true },
+    ],
+    why: "Living your values is partly character and partly conditions. Thanking the conditions tells you what to protect.",
+  },
+  held_value: {
+    id: "held_value",
+    title: "Held when it was hard",
+    blurb: "What you have because you didn't fold",
+    needsValues: true,
+    showValues: true,
+    prompt: "What do you have now because you held to a value when it was hard?",
+    fields: [
+      { key: "value", label: "Which value did you hold?", kind: "value", required: true },
+      { key: "have", label: "What do you have because of it?", placeholder: "Because I didn't take the shortcut, I now have…", long: true, required: true, isBody: true },
+    ],
+    subjectKey: "value",
+    why: "Holding a value usually costs something up front. This is the receipt: what it bought you later.",
+  },
+  values_conflict: {
+    id: "values_conflict",
+    title: "Values in conflict",
+    blurb: "Two values pulling against each other",
+    needsValues: true,
+    showValues: true,
+    prompt: "Name two of your values that are pulling against each other right now. What does each one ask of you this week? Then find one move that honors both.",
+    fields: [
+      { key: "a", label: "One value", kind: "value", required: true },
+      { key: "b", label: "The other", kind: "value", required: true },
+      { key: "asks", label: "What each one asks of you this week", placeholder: "Growth wants the late nights on the launch. Family wants me home by six…", long: true, required: true },
+      { key: "move", label: "One move that honors both", placeholder: "Launch work 6–8am, home by six, phone off at dinner…", long: true, required: true, isBody: true },
+    ],
+    subjectKey: "move",
+    why: "The hard choices are rarely good against bad. Naming both values usually turns an either/or into a schedule.",
+  },
+  drift_check: {
+    id: "drift_check",
+    title: "Monthly drift check",
+    blurb: "Where your time went, and where you said it would",
+    needsValues: true,
+    showValues: true,
+    prompt: "Where did your time go this month? Where did you say it would go? No score, just a look.",
+    fields: [
+      { key: "went", label: "Where your time actually went", placeholder: "Mostly the launch, some travel, less family than I'd like…", long: true, required: true, isBody: true },
+      { key: "said", label: "Where you said it would go", placeholder: "Family, the book, my health…", long: true },
+      { key: "return", label: "One small way to come back, if you want one", placeholder: "Sunday mornings go back to the kids." },
+    ],
+    why: "Drift is normal. The practice isn't a perfect month, it's noticing and returning.",
+  },
+  values_not_outcomes: {
+    id: "values_not_outcomes",
+    title: "Values, not outcomes",
+    blurb: "The result didn't land. What held?",
+    needsValues: true,
+    prompt: "The result didn't land. Which value did you keep anyway?",
+    fields: [
+      { key: "result", label: "What didn't land", placeholder: "The pitch, the race, the conversation…", required: true },
+      { key: "value", label: "Which value did you keep anyway?", kind: "value", required: true },
+      { key: "how", label: "How you kept it", placeholder: "I prepared honestly, I didn't cut corners, I told the truth about the numbers…", long: true, required: true, isBody: true },
+    ],
+    subjectKey: "result",
+    why: "Results depend on things you don't control. Values don't, so they're the part of a bad day you get to keep.",
+  },
   enough_line: {
     id: "enough_line",
     title: "Enough Line check",
@@ -245,11 +336,12 @@ export const PRACTICES: Record<PracticeId, Practice> = {
   },
 };
 
-export const PRACTICE_ORDER: PracticeId[] = ["past_self", "mental_subtraction", "win_thank", "grind", "invisible_chain", "enough_line", "counted_days", "play", "control", "one_move", "future_pull", "whose_hunger", "advocate_reply", "use_name", "evidence_file", "self_friend"];
+export const PRACTICE_ORDER: PracticeId[] = ["past_self", "mental_subtraction", "win_thank", "grind", "invisible_chain", "enough_line", "counted_days", "play", "control", "one_move", "future_pull", "whose_hunger", "advocate_reply", "use_name", "evidence_file", "self_friend", "lived_value", "easier_self", "held_value", "values_conflict", "drift_check", "values_not_outcomes"];
 
-export function availablePractices(opts: { countedDays: boolean; hasEnough: boolean }) {
+export function availablePractices(opts: { countedDays: boolean; hasEnough: boolean; hasValues?: boolean }) {
   return PRACTICE_ORDER.filter((id) => {
     const p = PRACTICES[id];
+    if (p.needsValues && !opts.hasValues) return false;
     if (p.optIn === "countedDays" && !opts.countedDays) return false;
     if (p.showEnough && !opts.hasEnough) return false;
     return true;

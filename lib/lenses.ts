@@ -47,9 +47,9 @@ export const LENSES: Lens[] = [
       { text: "He wrote his notebook to himself, as “you”: reminding, steadying, now and then scolding, but always on his own side.", practices: ["use_name", "advocate_reply"] },
       { text: "Much of what disturbs us is our judgment about an event, not the event. The judgment is the part you can still revise.", practices: ["grind", "mental_subtraction", "control"] },
       { text: "He imagined he might leave life right now, and let that decide what he did next. Not to frighten himself, but to sharpen what mattered.", practices: ["mental_subtraction", "counted_days"] },
-      { text: "What stands in the way of the work can become the work. The obstacle is raw material.", practices: ["grind", "control"] },
+      { text: "What stands in the way of the work can become the work. The obstacle is raw material.", practices: ["grind", "control", "values_not_outcomes"] },
       { text: "Nothing is made by one pair of hands. He compared people to feet, hands and eyelids: built to work together.", practices: ["invisible_chain", "win_thank"] },
-      { text: "His Meditations opens with a list of people he owed, one by one, naming what each gave him. He began with gratitude before he began with advice.", practices: ["win_thank", "invisible_chain", "any"] },
+      { text: "His Meditations opens with a list of people he owed, one by one, naming what each gave him. He began with gratitude before he began with advice.", practices: ["win_thank", "invisible_chain", "any", "lived_value"] },
     ],
   },
   {
@@ -60,7 +60,7 @@ export const LENSES: Lens[] = [
     ideas: [
       { text: "He describes reviewing each day at night like a fair judge, not a prosecutor: what went well, what to do better, and then letting himself off the hook.", practices: ["self_friend", "advocate_reply"] },
       { text: "We suffer more often in imagination than in reality. He suggested rehearsing loss in advance so it can't blindside you, and so you notice what you still have.", practices: ["mental_subtraction", "grind"] },
-      { text: "Life is long enough if you spend it well. Most of the shortage is waste, not supply.", practices: ["enough_line", "counted_days", "play"] },
+      { text: "Life is long enough if you spend it well. Most of the shortage is waste, not supply.", practices: ["enough_line", "counted_days", "play", "drift_check"] },
       { text: "He separated having much from craving more. The first can sit beside peace. The second never does.", practices: ["enough_line", "past_self"] },
       { text: "In his writing on giving and receiving favours, he treated gratitude as the first payment on a debt, one you can begin paying the moment you notice it.", practices: ["win_thank", "any"] },
       { text: "He ended each day by quietly reviewing it. What went well, what he'd do differently, no drama. Then he slept.", practices: ["any", "enough_line"] },
@@ -76,7 +76,7 @@ export const LENSES: Lens[] = [
       { text: "He taught that what upsets us is mostly the judgment we make about an event, not the event itself. Change the sentence you say to yourself and the same day weighs differently.", practices: ["advocate_reply", "evidence_file"] },
       { text: "Some things are up to us: our judgments, aims and choices. Others aren't: our bodies, reputations, and how things turn out. Peace comes from keeping the two lists straight.", practices: ["control", "grind", "enough_line"] },
       { text: "People are troubled less by things than by the views they take of them.", practices: ["grind", "control"] },
-      { text: "He likened life to a game of dice or ball: the throw isn't yours to choose, but playing well whatever lands is. That isn't giving up. It's putting your effort where it counts.", practices: ["control", "win_thank", "grind"] },
+      { text: "He likened life to a game of dice or ball: the throw isn't yours to choose, but playing well whatever lands is. That isn't giving up. It's putting your effort where it counts.", practices: ["control", "win_thank", "grind", "values_not_outcomes"] },
       { text: "Treat what you love as on loan. It makes you tender with it instead of grasping.", practices: ["counted_days", "mental_subtraction"] },
     ],
   },
@@ -103,7 +103,7 @@ export const LENSES: Lens[] = [
     ideas: [
       { text: "A journey of a thousand miles starts under your own feet. The next step is the only part you ever actually take.", practices: ["grind", "any"] },
       { text: "Knowing you have enough is its own kind of wealth. In the Tao Te Ching that isn't a reason to stop. It's a reason to be settled while you move.", practices: ["enough_line", "past_self"] },
-      { text: "Water is the softest thing, yet it wears down stone. Strength can look like yielding.", practices: ["grind", "control"] },
+      { text: "Water is the softest thing, yet it wears down stone. Strength can look like yielding.", practices: ["grind", "control", "easier_self"] },
       { text: "A bowl is useful because of the space inside it. What's absent is half of what makes a thing work.", practices: ["mental_subtraction", "play"] },
       { text: "When the work is done, step back. That's how it lasts, and how you stay light.", practices: ["win_thank"] },
     ],
@@ -140,7 +140,7 @@ export const LENSES: Lens[] = [
     ideas: [
       { text: "The real cost of a thing is the amount of life you trade for it. Worth asking before the next thing you chase.", practices: ["enough_line", "grind"] },
       { text: "He called a person rich in proportion to the things they can afford to leave alone.", practices: ["enough_line", "play"] },
-      { text: "He went to the woods to live deliberately: to meet the essentials of life and not discover at the end that he hadn't lived.", practices: ["any", "counted_days", "play"] },
+      { text: "He went to the woods to live deliberately: to meet the essentials of life and not discover at the end that he hadn't lived.", practices: ["any", "counted_days", "play", "drift_check"] },
     ],
   },
   {
@@ -152,8 +152,8 @@ export const LENSES: Lens[] = [
     ideas: [
       { text: "He saw people endure what seemed unendurable by holding onto a reason to keep going. When the critic gets loud, remind yourself of your why, not just your failures.", practices: ["evidence_file", "use_name"] },
       { text: "He saw meaning arriving in three ways: through what we do, through whom and what we love, and through the stance we take toward suffering we can't avoid.", practices: ["grind", "win_thank", "counted_days"] },
-      { text: "Success and happiness can't be chased directly. They tend to follow from giving yourself to something larger than yourself.", practices: ["win_thank", "enough_line", "grind"] },
-      { text: "Even when almost everything is taken, he argued, we keep one freedom: choosing our attitude toward what happens.", practices: ["control", "grind"] },
+      { text: "Success and happiness can't be chased directly. They tend to follow from giving yourself to something larger than yourself.", practices: ["win_thank", "enough_line", "grind", "held_value", "values_conflict"] },
+      { text: "Even when almost everything is taken, he argued, we keep one freedom: choosing our attitude toward what happens.", practices: ["control", "grind", "values_not_outcomes", "held_value"] },
     ],
   },
   {
@@ -162,7 +162,7 @@ export const LENSES: Lens[] = [
     tradition: "Modern founder-philosopher",
     blurb: "Wanting well: few desires, long games",
     ideas: [
-      { text: "He describes desire as a deal you make with yourself to be unhappy until you get the thing. So choose your desires on purpose, and carry only a few at a time.", practices: ["enough_line", "grind"] },
+      { text: "He describes desire as a deal you make with yourself to be unhappy until you get the thing. So choose your desires on purpose, and carry only a few at a time.", practices: ["enough_line", "grind", "values_conflict"] },
       { text: "He describes peace as happiness at rest. The aim isn't to stop moving, but to move from a settled place.", practices: ["any", "play"] },
       { text: "Play long-term games with long-term people. The best things compound slowly, and mostly through others.", practices: ["win_thank", "invisible_chain"] },
     ],

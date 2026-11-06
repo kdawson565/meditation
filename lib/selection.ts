@@ -20,9 +20,12 @@ export function suggestPractice(opts: {
   voice?: number;
   /** Sails marked "Not sure" in the last two weeks */
   unsureSails?: number;
+  /** the latest Sail didn't land */
+  setback?: boolean;
+  hasValues?: boolean;
 }): Suggestion {
   const { drive, peace, today, entries, mid } = opts;
-  const pool = availablePractices({ countedDays: !!opts.countedDays, hasEnough: !!opts.hasEnough });
+  const pool = availablePractices({ countedDays: !!opts.countedDays, hasEnough: !!opts.hasEnough, hasValues: !!opts.hasValues });
   const q = quadrantOf(drive, peace, mid);
 
   const lastUsed = (p: PracticeId) => {
@@ -30,7 +33,14 @@ export function suggestPractice(opts: {
     return hit ? daysBetween(hit.localDate, today) : 999;
   };
 
+  // A Sail that didn't land: the result moved, the value didn't.
+  if (opts.setback && pool.includes("values_not_outcomes") && lastUsed("values_not_outcomes") >= 3)
+    return { practice: "values_not_outcomes", reason: "Your last Sail didn't land. The result was never fully yours to steer. The value you kept was." };
+
   // Occasional practices: surfaced when they're due, not every day.
+  const dayOfMonth = Number(today.slice(8, 10));
+  if (pool.includes("drift_check") && dayOfMonth <= 7 && lastUsed("drift_check") >= 25)
+    return { practice: "drift_check", reason: "A new month. A quiet look at where the last one went, with no score attached." };
   if (pool.includes("enough_line") && lastUsed("enough_line") >= 14 && q !== "fog")
     return { practice: "enough_line", reason: "It's been a couple of weeks since you looked at your Enough Line. Worth a check, hungry or not." };
   if (pool.includes("counted_days") && lastUsed("counted_days") >= 10 && peace >= 5)
@@ -56,6 +66,8 @@ export function suggestPractice(opts: {
 
   if (pool.includes("control") && lastUsed("control") >= 6 && (q === "grind" || q === "fog"))
     return { practice: "control", reason: "Drive is up and Peace is down, which is often a sign of carrying things that aren't yours to move. This one sorts them." };
+  if (pool.includes("values_conflict") && lastUsed("values_conflict") >= 14 && q === "grind")
+    return { practice: "values_conflict", reason: "Pushing hard and not settled. Often that's two of your values pulling different ways. This one looks for a move that honors both." };
   if (pool.includes("whose_hunger") && lastUsed("whose_hunger") >= 10 && q === "grind")
     return { practice: "whose_hunger", reason: "Pushing hard and not feeling settled. Worth checking whether this hunger is fully yours." };
   if (pool.includes("play") && lastUsed("play") >= 6 && (q === "grind" || q === "ballast"))
@@ -65,11 +77,13 @@ export function suggestPractice(opts: {
     grind: [
       ["mental_subtraction", "Drive is outrunning Peace today. Subtracting something is the quickest way to feel what you already have."],
       ["past_self", "Drive is outrunning Peace today. Looking back at what you once hoped for can steady things."],
+      ["held_value", "Drive is outrunning Peace today. Remembering what holding a value has already bought you can steady things."],
     ],
     fog: [
       ["past_self", "Low on both today. This one is gentle and asks very little."],
       ["win_thank", "Low on both today. Naming one small thing that went right, and who helped, is enough."],
       ["one_move", "Low on both today. One small, real step is enough to get things moving."],
+      ["easier_self", "Low on both today. A gentle one: what made it a little easier to be yourself."],
     ],
     harbor: [
       ["one_move", "Settled, but Drive is low. A good moment to pick one real step and take it."],
@@ -77,16 +91,20 @@ export function suggestPractice(opts: {
       ["grind", "Peace is running ahead of Drive today. A good moment to look at a hard thing from the other side."],
       ["win_thank", "Peace is high. A good moment to name a recent win and what's underneath it."],
       ["invisible_chain", "Peace is high. A good moment to trace the people behind something ordinary."],
+      ["lived_value", "Peace is high. A good moment to notice someone who lived one of your values in front of you."],
     ],
     ballast: [
       ["win_thank", "Settled and hungry. A good day to credit what's carrying you."],
       ["invisible_chain", "Settled and hungry. A good day to notice how many people your ordinary day rests on."],
       ["grind", "Settled and hungry. A good day to file today's struggle as something you'll be glad of."],
       ["future_pull", "Settled and hungry. A good day to aim at something worth attempting."],
+      ["lived_value", "Settled and hungry. A good day to notice who showed you one of your values."],
+      ["held_value", "Settled and hungry. A good day to count what holding to a value has given you."],
     ],
   };
 
   const ranked = preferences[q]
+    .filter(([p]) => pool.includes(p))
     .map(([p, reason]) => ({ p, reason, gap: lastUsed(p) }))
     .filter((x) => x.gap >= 2)
     .sort((a, b) => b.gap - a.gap);

@@ -1,4 +1,4 @@
-export type PracticeId = "past_self" | "mental_subtraction" | "win_thank" | "grind" | "invisible_chain" | "counted_days" | "enough_line" | "play" | "control" | "one_move" | "future_pull" | "whose_hunger" | "short_day" | "advocate_reply" | "use_name" | "evidence_file" | "self_friend";
+export type PracticeId = "past_self" | "mental_subtraction" | "win_thank" | "grind" | "invisible_chain" | "counted_days" | "enough_line" | "play" | "control" | "one_move" | "future_pull" | "whose_hunger" | "short_day" | "advocate_reply" | "use_name" | "evidence_file" | "self_friend" | "lived_value" | "easier_self" | "held_value" | "values_conflict" | "drift_check" | "values_not_outcomes";
 
 export type SailResult = "filled" | "partly" | "not";
 
