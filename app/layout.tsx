@@ -4,7 +4,7 @@ import Boot from "@/components/Boot";
 
 export const metadata: Metadata = {
   title: "Ballast",
-  description: "A quiet daily gratitude practice for people who want to feel full while still hungry.",
+  description: "Grow without losing your peace. A few quiet minutes a day for ambitious people: feel full, and stay hungry.",
   applicationName: "Ballast",
   appleWebApp: { capable: true, title: "Ballast", statusBarStyle: "default" },
   icons: {

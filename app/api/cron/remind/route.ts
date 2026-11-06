@@ -6,7 +6,8 @@ export const dynamic = "force-dynamic";
 const LINES = [
   "A quiet few minutes, whenever you're ready.",
   "The tide is in. Come take a look.",
-  "Two dials and one line. That's all today needs.",
+  "Three dials and one line. That's all today needs.",
+  "Goals move. Values hold. What will you carry today?",
   "Whenever you have a moment to feel what you already have.",
 ];
 

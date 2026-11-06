@@ -33,7 +33,7 @@ export default function InsightsPage() {
     <div className="fade-in space-y-8">
       <header>
         <h1 className="font-serif text-3xl">What moves you</h1>
-        <p className="mt-2 text-muted">How Peace and Drive changed between check-in and close, by practice. The goal is more Peace without dulling your edge.</p>
+        <p className="mt-2 text-muted">How Peace and Drive changed between check-in and close, by practice. Grow without losing your peace: more Peace, without dulling your edge.</p>
       </header>
 
       <section aria-labelledby="s-voice" className="rounded-2xl border border-line p-5">
@@ -56,7 +56,7 @@ export default function InsightsPage() {
           <p className="mt-2 text-[15px]">
             {filled} filled, {partly} partly, {answered.length - filled - partly} not, out of {answered.length} you checked back on.
           </p>
-          <p className="mt-1 text-sm text-muted">This is your follow-through, an honest Drive number. Misses are information, not a score.</p>
+          <p className="mt-1 text-sm text-muted">This is your follow-through, an honest Drive number. A Sail that didn't fill is information, not a score.</p>
         </section>
       )}
 

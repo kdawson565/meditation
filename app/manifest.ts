@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Ballast",
     short_name: "Ballast",
-    description: "A quiet daily gratitude practice.",
+    description: "Grow without losing your peace.",
     start_url: "/today",
     scope: "/",
     display: "standalone",

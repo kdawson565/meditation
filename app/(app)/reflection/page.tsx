@@ -2,7 +2,8 @@
 import { useMemo, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
-import { useCheckins, useEntries, useProfile } from "@/lib/hooks";
+import { useCheckins, useEntries, useProfile, useValues } from "@/lib/hooks";
+import { coreValues, valueName } from "@/lib/values";
 import { addDays, formatFull, formatShort, parseDate, todayStr, weekStartOf } from "@/lib/dates";
 import { saveReflection } from "@/lib/store";
 import { aiReasonText, callAI } from "@/lib/ai-client";
@@ -15,6 +16,7 @@ export default function ReflectionPage() {
   const profile = useProfile();
   const checkins = useCheckins();
   const entries = useEntries();
+  const allValues = useValues();
   const past = useLiveQuery(() => db.reflections.orderBy("weekStart").reverse().toArray(), []);
   const today = todayStr();
   const isSunday = parseDate(today).getDay() === 0;
@@ -33,20 +35,29 @@ export default function ReflectionPage() {
     };
   }, [checkins, entries, weekStart, weekEnd]);
 
-  if (!profile || !week || !past) return <div aria-busy="true" />;
+  if (!profile || !week || !past || !allValues) return <div aria-busy="true" />;
+  const values = coreValues(allValues);
+  const vName = (id?: string) => (id === "unsure" ? "Not sure" : valueName(allValues, id));
+  // Evidence-line counts per value: this week and the three weeks before, so the note can say what went quiet.
+  const valueCounts = values.map((v) => {
+    const lived = (from: string, to: string) => (checkins ?? []).filter((c) => c.floorValueId === v.id && c.evidence?.trim() && c.localDate >= from && c.localDate <= to).length;
+    return { name: v.name, thisWeek: lived(weekStart, weekEnd), prior3Weeks: lived(addDays(weekStart, -21), addDays(weekStart, -1)) };
+  });
   const current = past.find((r) => r.weekStart === weekStart);
-  const distress = suggestsDistress(week.entries.flatMap((e) => [e.body, ...Object.values(e.fields), e.sail ?? "", e.floor ?? "", e.sailAdvocate ?? ""]));
+  const distress = suggestsDistress([...week.entries.flatMap((e) => [e.body, ...Object.values(e.fields), e.sail ?? "", e.floor ?? "", e.sailAdvocate ?? ""]), ...week.days.map((c) => c.evidence ?? "")]);
 
   async function generate() {
     setBusy(true);
     setNote("");
-    let body = localReflection(week!.days, week!.entries, profile!.lenses);
+    let body = localReflection(week!.days, week!.entries, profile!.lenses, allValues);
     let source: "ai" | "local" = "local";
     if (profile!.aiConsent) {
       const r = await callAI<{ body: string }>("/api/ai/reflection", {
-        days: week!.days.map((c) => ({ date: c.localDate, drive: c.drive, peace: c.peace, voice: c.voice, peaceAfter: c.peaceAfter, driveAfter: c.driveAfter })),
+        days: week!.days.map((c) => ({ date: c.localDate, drive: c.drive, peace: c.peace, voice: c.voice, peaceAfter: c.peaceAfter, driveAfter: c.driveAfter, carried: vName(c.floorValueId), evidence: c.evidence })),
+        values: values.map((v) => ({ name: v.name, definition: v.definition })),
+        valueCounts,
         lenses: pickLenses(profile!.lenses, 2, weekStart).map((l) => ({ name: l.name, ideas: l.ideas.slice(0, 5).map((i) => i.text) })),
-        entries: week!.entries.map((e) => ({ date: e.localDate, practice: e.practice, body: e.body, tags: e.tags, sail: e.sail, floor: e.floor, advocate: e.sailAdvocate })),
+        entries: week!.entries.map((e) => ({ date: e.localDate, practice: e.practice, body: e.body, tags: e.tags, sail: e.sail, floor: e.floor, advocate: e.sailAdvocate, sailValue: vName(e.sailValue) })),
       });
       if (r.ok) { body = r.data.body; source = "ai"; } else setNote(aiReasonText(r.reason));
     } else setNote("AI features are off, so this note was written on your device from your numbers. You can turn them on in Settings.");
@@ -82,7 +93,7 @@ export default function ReflectionPage() {
         <p className="text-muted">{week.days.length} {week.days.length === 1 ? "day" : "days"} and {week.entries.length} {week.entries.length === 1 ? "entry" : "entries"} are ready.</p>
       )}
 
-      {profile.aiConsent && !thin && <p className="text-sm text-muted">Generating sends this week's entries and dials to Claude through this app's server. Nothing else leaves your device.</p>}
+      {profile.aiConsent && !thin && <p className="text-sm text-muted">Generating sends this week's entries, dials, values and evidence lines to Claude through this app's server. Nothing else leaves your device.</p>}
       {note && <p aria-live="polite" className="text-[15px] text-muted">{note}</p>}
       {!thin && (
         <button className="btn" onClick={generate} disabled={busy}>{busy ? "Writing…" : current ? "Write it again" : "Write this week's reflection"}</button>

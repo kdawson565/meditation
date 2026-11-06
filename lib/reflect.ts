@@ -1,11 +1,13 @@
-import type { Checkin, Entry } from "./types";
+import type { Checkin, Entry, Value } from "./types";
 import { PRACTICES } from "./practices";
 import { pickIdea } from "./lenses";
 
+/** "A", "A and B", "A, B and C" */
+const list = (xs: string[]) => (xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
 const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
 
 /** A plain, honest on-device reflection used when AI is off or unavailable. Numbers only, no spin. */
-export function localReflection(days: Checkin[], entries: Entry[], lenses?: string[]): string {
+export function localReflection(days: Checkin[], entries: Entry[], lenses?: string[], values?: Value[]): string {
   if (days.length === 0 && entries.length === 0) return "There isn't enough from this week to say much yet. A few days of dials and entries and there will be something here.";
   const d = avg(days.map((c) => c.drive));
   const p = avg(days.map((c) => c.peace));
@@ -26,6 +28,23 @@ export function localReflection(days: Checkin[], entries: Entry[], lenses?: stri
     parts.push(`Your Voice averaged ${v.toFixed(1)}${kind.length >= 2 ? `, and on the ${kind.length} days it was 7 or above, Peace averaged ${avg(kind.map((c) => c.peace))!.toFixed(1)} and Drive ${avg(kind.map((c) => c.drive))!.toFixed(1)}` : ""}.`);
   }
 
+  // Values: which showed up in evidence lines, which were quiet. Quiet is normal; returning is the practice.
+  const core = (values ?? []).filter((v) => v.core);
+  if (core.length) {
+    const lived = days.filter((c) => c.evidence?.trim());
+    const count = (id: string) => lived.filter((c) => c.floorValueId === id).length;
+    const shown = core.filter((v) => count(v.id) > 0).sort((a, b) => count(b.id) - count(a.id));
+    const quiet = core.filter((v) => count(v.id) === 0);
+    if (shown.length) {
+      parts.push(`You noted living a value on ${lived.length} ${lived.length === 1 ? "day" : "days"}, most often ${shown[0].name}${shown.length > 1 ? `, then ${list(shown.slice(1).map((v) => v.name))}` : ""}.`);
+      const other = days.filter((c) => !c.evidence?.trim());
+      if (lived.length >= 2 && other.length >= 2) parts.push(`On those days Peace averaged ${avg(lived.map((c) => c.peace))!.toFixed(1)}, and ${avg(other.map((c) => c.peace))!.toFixed(1)} on the rest. A week is a small sample.`);
+      if (quiet.length) parts.push(`${list(quiet.map((v) => v.name))} ${quiet.length === 1 ? "was" : "were"} quiet this week. Drift is normal. If you like, carry ${quiet[0].name} one day next week.`);
+    } else {
+      parts.push("No value moments noted this week. That's fine. Coming back is the practice.");
+    }
+  }
+
   const tagPeace = new Map<string, number[]>();
   for (const e of entries) {
     const c = byDate.get(e.localDate);
@@ -44,7 +63,7 @@ export function localReflection(days: Checkin[], entries: Entry[], lenses?: stri
   }
   const practiceCounts = new Map<string, number>();
   entries.forEach((e) => practiceCounts.set(e.practice, (practiceCounts.get(e.practice) ?? 0) + 1));
-  const unused = Object.values(PRACTICES).find((x) => !practiceCounts.has(x.id) && !x.optIn && !x.showEnough && !x.hidden);
+  const unused = Object.values(PRACTICES).find((x) => !practiceCounts.has(x.id) && !x.optIn && !x.showEnough && !x.hidden && (!x.needsValues || core.length > 0));
   if (unused) parts.push(`One thing to try next week: ${unused.title}. You haven't used it lately.`);
   const idea = pickIdea(lenses, "any", entries[0]?.localDate ?? "week");
   if (idea) parts.push(`In the spirit of ${idea.lens.name}: ${idea.idea.text}`);
