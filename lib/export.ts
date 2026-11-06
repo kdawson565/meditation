@@ -3,7 +3,7 @@ import { PRACTICES } from "./practices";
 import { formatFull } from "./dates";
 
 export async function exportJSON() {
-  const [profile, checkins, entries, ledger, audits, thanks, reflections] = await Promise.all([db.profile.get("me"), db.checkins.toArray(), db.entries.toArray(), db.ledger.toArray(), db.audits.toArray(), db.thanks.toArray(), db.reflections.toArray()]);
+  const [profile, checkins, entries, ledger, audits, thanks, reflections, values] = await Promise.all([db.profile.get("me"), db.checkins.toArray(), db.entries.toArray(), db.ledger.toArray(), db.audits.toArray(), db.thanks.toArray(), db.reflections.toArray(), db.values.orderBy("position").toArray()]);
   const strip = <T extends { dirty?: unknown }>(x: T) => {
     const { dirty: _d, ...rest } = x;
     void _d;
@@ -20,6 +20,7 @@ export async function exportJSON() {
       audits: audits.map(strip),
       thanks: thanks.filter((t) => !t.deletedAt).map(strip),
       reflections: reflections.map(strip),
+      values: values.map(strip),
     },
     null,
     2,
@@ -27,7 +28,7 @@ export async function exportJSON() {
 }
 
 export async function exportMarkdown() {
-  const [profile, checkins, entries, ledger, audits, thanks, reflections] = await Promise.all([db.profile.get("me"), db.checkins.toArray(), db.entries.toArray(), db.ledger.toArray(), db.audits.toArray(), db.thanks.toArray(), db.reflections.toArray()]);
+  const [profile, checkins, entries, ledger, audits, thanks, reflections, values] = await Promise.all([db.profile.get("me"), db.checkins.toArray(), db.entries.toArray(), db.ledger.toArray(), db.audits.toArray(), db.thanks.toArray(), db.reflections.toArray(), db.values.orderBy("position").toArray()]);
   const byDate = new Map(checkins.map((c) => [c.localDate, c]));
   const live = entries.filter((e) => !e.deletedAt).sort((a, b) => (a.localDate < b.localDate ? 1 : a.localDate > b.localDate ? -1 : a.createdAt < b.createdAt ? 1 : -1));
   const out: string[] = ["# Ballast journal", ""];
@@ -43,6 +44,19 @@ export async function exportMarkdown() {
       out.push("");
     }
   }
+  const core = values.filter((v) => v.core);
+  if (core.length) {
+    out.push("## My values", "");
+    for (const v of core) out.push(`- **${v.name}**${v.definition ? `: ${v.definition}` : ""}`);
+    out.push("");
+  }
+  const vName = (id?: string) => (id === "unsure" ? "Not sure" : values.find((v) => v.id === id)?.name);
+  const daysWithValue = [...checkins].filter((c) => c.floorValueId || c.evidence).sort((a, b) => (a.localDate < b.localDate ? 1 : -1));
+  if (daysWithValue.length) {
+    out.push("## Values carried", "");
+    for (const c of daysWithValue) out.push(`- ${formatFull(c.localDate)}: ${vName(c.floorValueId) ?? "a value"}${c.evidence ? `. ${c.evidence}` : ""}`);
+    out.push("");
+  }
   out.push("## Entries", "");
   for (const e of live) {
     const p = PRACTICES[e.practice];
@@ -51,7 +65,7 @@ export async function exportMarkdown() {
     if (c) out.push(`*Drive ${c.drive} · Peace ${c.peace}${c.peaceAfter ? ` → Peace ${c.peaceAfter}` : ""}${c.driveAfter ? `, Drive ${c.driveAfter} after` : ""}*`);
     out.push("");
     for (const f of p.fields) if (e.fields[f.key]) out.push(`**${f.label}**`, "", e.fields[f.key], "");
-    if (e.sail) out.push(`**Sail:** ${e.sail}`, "");
+    if (e.sail) out.push(`**Sail:** ${e.sail}${vName(e.sailValue) ? ` (serves: ${vName(e.sailValue)})` : ""}`, "");
     if (e.floor) out.push(`**Floor:** ${e.floor}`, "");
     if (e.tags.length) out.push(`Tags: ${e.tags.map((t) => `#${t}`).join(" ")}`, "");
     if (e.resurfaceOn) out.push(`Check back: ${formatFull(e.resurfaceOn)}`, "");

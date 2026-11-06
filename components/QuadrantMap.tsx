@@ -12,7 +12,7 @@ function hash(id: string) {
   return h;
 }
 
-export default function QuadrantMap({ days, mid, selected, onSelect }: { days: Checkin[]; mid: { drive: number; peace: number }; selected?: string; onSelect: (c: Checkin) => void }) {
+export default function QuadrantMap({ days, mid, selected, onSelect, valuesLayer = false }: { days: Checkin[]; mid: { drive: number; peace: number }; selected?: string; onSelect: (c: Checkin) => void; valuesLayer?: boolean }) {
   const px = (peace: number, id: string) => PAD + ((peace - 1 + (((hash(id) & 255) / 255) - 0.5) * 0.5) / 9) * IN;
   const py = (drive: number, id: string) => PAD + (1 - (drive - 1 + ((((hash(id) >> 8) & 255) / 255) - 0.5) * 0.5) / 9) * IN;
   const mx = PAD + ((mid.peace - 1) / 9) * IN;
@@ -25,7 +25,7 @@ export default function QuadrantMap({ days, mid, selected, onSelect }: { days: C
     </text>
   );
   return (
-    <svg viewBox={`0 0 ${S} ${S}`} className="w-full" role="img" aria-label="Map of your last 30 days. Peace runs left to right, Drive runs bottom to top. The top right is Ballast. A ring marks days your Voice was 7 or higher.">
+    <svg viewBox={`0 0 ${S} ${S}`} className="w-full" role="img" aria-label={`Map of your last 30 days. Peace runs left to right, Drive runs bottom to top. The top right is Ballast. A ring marks days your Voice was 7 or higher.${valuesLayer ? " Filled dots are days you noted a moment you lived a value; hollow dots are other days." : ""}`}>
       <rect x={mx} y={PAD} width={S - PAD - mx} height={my - PAD} fill="rgb(var(--sea))" opacity="0.14" />
       <rect x={PAD} y={PAD} width={S - PAD * 2} height={S - PAD * 2} fill="none" stroke="rgb(var(--line))" />
       <line x1={mx} x2={mx} y1={PAD} y2={S - PAD} stroke="rgb(var(--line))" strokeDasharray="3 4" />
@@ -46,7 +46,12 @@ export default function QuadrantMap({ days, mid, selected, onSelect }: { days: C
             <circle cx={x} cy={y} r={14} fill="transparent" />
             {c.voice != null && c.voice >= 7 && !last && !sel && <circle cx={x} cy={y} r={7} fill="none" stroke="rgb(var(--sea))" strokeWidth="1.25" opacity={0.35 + age * 0.5} />}
             {(last || sel) && <circle cx={x} cy={y} r={last ? 11 : 9} fill="none" stroke="rgb(var(--brass))" strokeWidth="1.5" opacity={sel ? 1 : 0.6} />}
-            <circle cx={x} cy={y} r={last ? 6 : 4} fill={last ? "rgb(var(--brass))" : "rgb(var(--ink))"} opacity={last ? 1 : 0.12 + age * 0.55} style={{ transition: "opacity 500ms" }} />
+            {valuesLayer && !c.evidence?.trim() ? (
+              // hollow: a day without a noted value moment. Never "missed", just open.
+              <circle cx={x} cy={y} r={last ? 5.5 : 3.5} fill="rgb(var(--paper))" stroke={last ? "rgb(var(--brass))" : "rgb(var(--ink))"} strokeWidth="1.5" opacity={last ? 1 : 0.3 + age * 0.5} style={{ transition: "opacity 500ms" }} />
+            ) : (
+              <circle cx={x} cy={y} r={last ? 6 : 4} fill={last ? "rgb(var(--brass))" : "rgb(var(--ink))"} opacity={last ? 1 : (valuesLayer ? 0.3 : 0.12) + age * (valuesLayer ? 0.5 : 0.55)} style={{ transition: "opacity 500ms" }} />
+            )}
           </g>
         );
       })}

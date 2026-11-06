@@ -1,7 +1,7 @@
 import { db, now } from "./db";
 import { addDays, addMonths, parseDate, todayStr, uid } from "./dates";
 import { emptyEnough } from "./store";
-import type { Audit, Checkin, Entry, LedgerItem, PracticeId, Reflection, Thank } from "./types";
+import type { Audit, Checkin, Entry, LedgerItem, PracticeId, Reflection, Thank, Value } from "./types";
 import { PRACTICES } from "./practices";
 
 // Deterministic pseudo-random so the sample map looks the same each time.
@@ -50,11 +50,23 @@ const ENOUGH = {
   time: "One unscheduled morning a week, and I'm home before the kids' bedtime.",
 };
 
+const SAMPLE_VALUES: { name: string; definition: string; evidence: string[] }[] = [
+  { name: "Family", definition: "I'm home in body and in mind at dinner.", evidence: ["Phone in the drawer through dinner. Mia told me the whole plot of her book.", "Left at five for the recital and didn't check email once.", "Sat on the floor and built the Lego ship instead of half-watching."] },
+  { name: "Craft", definition: "I take one piece of work further than it needs to go.", evidence: ["Rewrote the pricing page a third time. It's finally simple.", "Fixed the onboarding bug properly instead of patching it.", "Spent an extra hour on the deck so the story reads without me."] },
+  { name: "Presence", definition: "When someone's talking, my phone stays down.", evidence: ["Walked with Priya and just listened. No advice.", "Ten minutes on the porch with coffee and nothing else.", "Noticed I was rehearsing my reply and stopped. Heard what Marcus actually meant."] },
+  { name: "Integrity", definition: "What I say in the room matches what I do after.", evidence: ["Told the board the number was soft before they found out.", "Gave Elena the credit in the all-hands. It was hers.", "Said no to the deal that looked good and felt wrong."] },
+  { name: "Growth", definition: "I try one thing I'm not yet good at.", evidence: ["Ran the finance review myself instead of handing it off.", "Asked for blunt feedback on the talk and took notes.", "Spent the commute on Spanish instead of the inbox."] },
+];
+const TAG_VALUE: Record<string, string> = { family: "Family", home: "Family", work: "Craft", craft: "Craft", people: "Integrity", luck: "Presence", health: "Growth", body: "Growth", money: "Growth" };
+
 export async function loadSample(name = "Sam") {
   const today = todayStr();
   const rand = rng(42);
   const checkins: Checkin[] = [];
   const entries: Entry[] = [];
+  const t0 = now();
+  const values: Value[] = SAMPLE_VALUES.map((v, i) => ({ id: uid(), name: v.name, definition: v.definition, position: i, core: true, custom: false, createdAt: t0, updatedAt: t0, dirty: 0 }));
+  const evidenceUsed = new Map<string, number>();
 
   const DAYS = 52;
   let sampleIdx = 0;
@@ -64,13 +76,24 @@ export async function loadSample(name = "Sam") {
     const date = addDays(today, -i);
     const t = (DAYS - i) / DAYS; // 0 → 1, a slow drift toward Ballast
     const drive = clamp(7.6 + (rand() - 0.5) * 2.4 - t * 0.4 + (i % 9 === 0 ? -2.2 : 0));
-    const peace = clamp(3.6 + t * 3.6 + (rand() - 0.5) * 2.6 + (i % 11 === 0 ? -1.8 : 0));
+    // Values arrive about a third of the way in. On days a value was lived, Peace runs a little higher.
+    const valuesOn = t > 0.3;
+    const lived = valuesOn && rand() < 0.6;
+    const peace = clamp(3.6 + t * 3.6 + (rand() - 0.5) * 2.6 + (i % 11 === 0 ? -1.8 : 0) + (lived ? 0.7 : 0));
     // Voice drifts up over the sample and tends to travel with Peace
     const voice = clamp(3.8 + t * 3.2 + (peace - 5) * 0.4 + (rand() - 0.5) * 2.2);
     const id = uid();
     const ts = new Date(`${date}T08:00:00`).toISOString();
     const afterBoost = rand() < 0.75 ? Math.round(rand() * 2) + (peace < 5 ? 1 : 0) : 0;
-    checkins.push({ id, localDate: date, drive, peace, voice, peaceAfter: afterBoost ? clamp(peace + afterBoost) : undefined, driveAfter: afterBoost ? clamp(drive + (rand() < 0.2 ? -1 : 0)) : undefined, createdAt: ts, updatedAt: ts, dirty: 0 });
+    const carried = valuesOn && (lived || rand() < 0.75) ? values[Math.floor(rand() * values.length)] : undefined;
+    let evidence: string | undefined;
+    if (lived && carried) {
+      const pool = SAMPLE_VALUES.find((v) => v.name === carried.name)!.evidence;
+      const n = evidenceUsed.get(carried.name) ?? 0;
+      evidence = pool[n % pool.length];
+      evidenceUsed.set(carried.name, n + 1);
+    }
+    checkins.push({ id, localDate: date, drive, peace, voice, peaceAfter: afterBoost ? clamp(peace + afterBoost) : undefined, driveAfter: afterBoost ? clamp(drive + (rand() < 0.2 ? -1 : 0)) : undefined, floorValueId: carried?.id, evidence, createdAt: ts, updatedAt: ts, dirty: 0 });
 
     const s = SAMPLES[sampleIdx++ % SAMPLES.length];
     const p = PRACTICES[s.practice];
@@ -78,7 +101,12 @@ export async function loadSample(name = "Sam") {
     const resurfaceOn = s.practice === "grind" ? addMonths(date, [3, 6, 12][sampleIdx % 3]) : undefined;
     entries.push({
       id: uid(), localDate: date, practice: s.practice, prompt: p.prompt, fields: s.fields, body: s.fields[bodyKey],
-      tags: s.tags, sail: s.sail, floor: s.floor, checkinId: id, resurfaceOn, createdAt: ts, updatedAt: ts, dirty: 0,
+      tags: s.tags, sail: s.sail,
+      // before values: the old free-text Floor. After: the Floor is a value on the day, and Sails name the value they serve.
+      floor: valuesOn ? undefined : s.floor,
+      sailValue: valuesOn && s.sail ? (rand() < 0.18 ? "unsure" : values.find((v) => v.name === (TAG_VALUE[s.tags[0]] ?? "Craft"))?.id) : undefined,
+      sailResult: s.sail && i > 1 ? (rand() < 0.55 ? "filled" : rand() < 0.6 ? "partly" : "not") : undefined,
+      checkinId: id, resurfaceOn, createdAt: ts, updatedAt: ts, dirty: 0,
     });
   }
 
@@ -136,7 +164,8 @@ export async function loadSample(name = "Sam") {
       body: "Peace was highest on the days you wrote about people (Dana, Marcus, the team) and lowest on days you wrote about the quarterly number, even though Drive was about the same either way. Mental Subtraction came with the biggest lift at close. A week is a small sample, so take it as a hint. For next week: try Invisible Chain once, and keep it about a person you'll never meet." },
   ];
 
-  await db.transaction("rw", [db.profile, db.checkins, db.entries, db.resurfaced, db.ledger, db.audits, db.thanks, db.reflections], async () => {
+  await db.transaction("rw", [db.profile, db.checkins, db.entries, db.resurfaced, db.ledger, db.audits, db.thanks, db.reflections, db.values], async () => {
+    await db.values.clear(); await db.values.bulkPut(values);
     await db.ledger.clear(); await db.audits.clear(); await db.thanks.clear(); await db.reflections.clear();
     await db.ledger.bulkPut(ledger); await db.audits.bulkPut(audits); await db.thanks.bulkPut(thanks); await db.reflections.bulkPut(reflections);
     await db.checkins.clear();

@@ -12,3 +12,6 @@ export function useCheckins() {
 export function useEntries() {
   return useLiveQuery(async () => (await db.entries.orderBy("localDate").toArray()).filter((e) => !e.deletedAt), []);
 }
+export function useValues() {
+  return useLiveQuery(() => db.values.orderBy("position").toArray(), []);
+}

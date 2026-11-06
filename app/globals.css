@@ -13,6 +13,9 @@
   --brass-ink: 122 90 40;
   --deep: 22 34 58;
   --on-deep: 246 241 231;
+  /* chart series, validated for colorblind separation against the surface */
+  --chart-drive: 176 109 22;
+  --chart-peace: 0 136 163;
   color-scheme: light;
 }
 
@@ -27,6 +30,8 @@
   --brass-ink: 214 182 128;
   --deep: 233 228 216;
   --on-deep: 11 22 38;
+  --chart-drive: 196 133 46;
+  --chart-peace: 43 166 179;
   color-scheme: dark;
 }
 

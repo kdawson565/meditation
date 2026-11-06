@@ -18,6 +18,8 @@ export function suggestPractice(opts: {
   countedDays?: boolean;
   hasEnough?: boolean;
   voice?: number;
+  /** Sails marked "Not sure" in the last two weeks */
+  unsureSails?: number;
 }): Suggestion {
   const { drive, peace, today, entries, mid } = opts;
   const pool = availablePractices({ countedDays: !!opts.countedDays, hasEnough: !!opts.hasEnough });
@@ -47,6 +49,10 @@ export function suggestPractice(opts: {
       .sort((a, b) => b.gap - a.gap);
     if (voiceRanked.length) return { practice: voiceRanked[0].p, reason: voiceRanked[0].reason };
   }
+
+  // A gentle offer, never a verdict on the goal: two or more Sails lately that didn't connect to a value.
+  if (pool.includes("whose_hunger") && (opts.unsureSails ?? 0) >= 2 && lastUsed("whose_hunger") >= 10)
+    return { practice: "whose_hunger", reason: "A few of your recent Sails didn't clearly connect to a value. That's fine. This one helps sort which ambitions are yours." };
 
   if (pool.includes("control") && lastUsed("control") >= 6 && (q === "grind" || q === "fog"))
     return { practice: "control", reason: "Drive is up and Peace is down, which is often a sign of carrying things that aren't yours to move. This one sorts them." };

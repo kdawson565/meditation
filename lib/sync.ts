@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { supabase } from "./supabase";
 import type { Table } from "dexie";
-import type { Audit, Checkin, Entry, LedgerItem, Profile, Reflection, Thank } from "./types";
+import type { Audit, Checkin, Entry, LedgerItem, Profile, Reflection, Thank, Value } from "./types";
 
 /**
  * Local-first sync. Everything is written to IndexedDB first (so the ritual works offline),
@@ -18,6 +18,11 @@ interface Mapper<T extends { id: string; updatedAt: string; dirty: 0 | 1 }> {
 }
 
 const phase2: Mapper<any>[] = [ // eslint-disable-line @typescript-eslint/no-explicit-any
+  {
+    name: "user_values", table: db.values,
+    toRow: (x: Value, u) => ({ id: x.id, user_id: u, name: x.name, definition: x.definition, position: x.position, core: x.core, custom: x.custom, created_at: x.createdAt, updated_at: x.updatedAt }),
+    fromRow: (r): Value => ({ id: r.id, name: r.name, definition: r.definition ?? "", position: r.position ?? 0, core: !!r.core, custom: !!r.custom, createdAt: r.created_at, updatedAt: r.updated_at, dirty: 0 }),
+  },
   {
     name: "ledger_items", table: db.ledger,
     toRow: (x: LedgerItem, u) => ({ id: x.id, user_id: u, kind: x.kind, text: x.text, want_id: x.wantId ?? null, arrived_on: x.arrivedOn ?? null, created_at: x.createdAt, updated_at: x.updatedAt, deleted_at: x.deletedAt ?? null }),
@@ -63,15 +68,15 @@ let running = false;
 const toRow = {
   profile: (p: Profile, userId: string) => ({
     id: userId, name: p.name, ritual_time: p.ritualTime, enough: p.enough, counted_days: p.countedDays,
-    notify: p.notify, ai_consent: p.aiConsent, theme: p.theme, timezone: p.timezone, lenses: p.lenses ?? [], updated_at: p.updatedAt,
+    notify: p.notify, ai_consent: p.aiConsent, theme: p.theme, timezone: p.timezone, lenses: p.lenses ?? [], values_invite_dismissed: !!p.valuesInviteDismissed, updated_at: p.updatedAt,
   }),
   checkin: (c: Checkin, userId: string) => ({
     id: c.id, user_id: userId, local_date: c.localDate, drive: c.drive, peace: c.peace, voice: c.voice ?? null,
-    peace_after: c.peaceAfter ?? null, drive_after: c.driveAfter ?? null, created_at: c.createdAt, updated_at: c.updatedAt,
+    peace_after: c.peaceAfter ?? null, drive_after: c.driveAfter ?? null, floor_value_id: c.floorValueId ?? null, evidence: c.evidence ?? null, created_at: c.createdAt, updated_at: c.updatedAt,
   }),
   entry: (e: Entry, userId: string) => ({
     id: e.id, user_id: userId, local_date: e.localDate, practice: e.practice, prompt: e.prompt,
-    fields: e.fields, body: e.body, tags: e.tags, sail: e.sail ?? null, floor: e.floor ?? null, sail_result: e.sailResult ?? null, sail_advocate: e.sailAdvocate ?? null,
+    fields: e.fields, body: e.body, tags: e.tags, sail: e.sail ?? null, floor: e.floor ?? null, sail_result: e.sailResult ?? null, sail_advocate: e.sailAdvocate ?? null, sail_value: e.sailValue ?? null,
     checkin_id: e.checkinId ?? null, resurface_on: e.resurfaceOn ?? null, created_at: e.createdAt,
     updated_at: e.updatedAt, deleted_at: e.deletedAt ?? null,
   }),
@@ -127,7 +132,7 @@ export async function syncNow(): Promise<{ ok: boolean; message: string }> {
       const local = await db.checkins.get(r.id);
       if (local && local.updatedAt >= r.updated_at) continue;
       await db.checkins.put({
-        id: r.id, localDate: r.local_date, drive: r.drive, peace: r.peace, voice: r.voice ?? undefined, peaceAfter: r.peace_after ?? undefined, driveAfter: r.drive_after ?? undefined,
+        id: r.id, localDate: r.local_date, drive: r.drive, peace: r.peace, voice: r.voice ?? undefined, peaceAfter: r.peace_after ?? undefined, driveAfter: r.drive_after ?? undefined, floorValueId: r.floor_value_id ?? undefined, evidence: r.evidence ?? undefined,
         createdAt: r.created_at, updatedAt: r.updated_at, dirty: 0,
       });
     }
@@ -136,7 +141,7 @@ export async function syncNow(): Promise<{ ok: boolean; message: string }> {
       if (local && local.updatedAt >= r.updated_at) continue;
       await db.entries.put({
         id: r.id, localDate: r.local_date, practice: r.practice, prompt: r.prompt, fields: r.fields ?? {},
-        body: r.body, tags: r.tags ?? [], sail: r.sail ?? undefined, floor: r.floor ?? undefined, sailResult: r.sail_result ?? undefined, sailAdvocate: r.sail_advocate ?? undefined,
+        body: r.body, tags: r.tags ?? [], sail: r.sail ?? undefined, floor: r.floor ?? undefined, sailResult: r.sail_result ?? undefined, sailAdvocate: r.sail_advocate ?? undefined, sailValue: r.sail_value ?? undefined,
         checkinId: r.checkin_id ?? undefined, resurfaceOn: r.resurface_on ?? undefined,
         createdAt: r.created_at, updatedAt: r.updated_at, deletedAt: r.deleted_at ?? undefined, dirty: 0,
       });
@@ -148,7 +153,7 @@ export async function syncNow(): Promise<{ ok: boolean; message: string }> {
       await db.profile.put({
         id: "me", name: remoteP.name, ritualTime: remoteP.ritual_time, enough: remoteP.enough,
         countedDays: remoteP.counted_days, notify: remoteP.notify, aiConsent: remoteP.ai_consent,
-        theme: remoteP.theme, timezone: remoteP.timezone ?? "UTC", lenses: remoteP.lenses ?? [], createdAt: remoteP.created_at, updatedAt: remoteP.updated_at, dirty: 0,
+        theme: remoteP.theme, timezone: remoteP.timezone ?? "UTC", lenses: remoteP.lenses ?? [], valuesInviteDismissed: !!remoteP.values_invite_dismissed, createdAt: remoteP.created_at, updatedAt: remoteP.updated_at, dirty: 0,
       });
     }
     await db.meta.put({ key: "lastPull", value: pulledAt });

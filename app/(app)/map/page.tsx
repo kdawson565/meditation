@@ -1,7 +1,9 @@
 "use client";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { useCheckins, useEntries } from "@/lib/hooks";
+import { useCheckins, useEntries, useValues } from "@/lib/hooks";
+import { coreValues } from "@/lib/values";
+import GrowthPeace from "@/components/GrowthPeace";
 import { addDays, daysInMonth, formatLong, todayStr } from "@/lib/dates";
 import { midlines, quadrantOf, QUADRANT_INFO, type Quadrant } from "@/lib/quadrant";
 import type { Checkin } from "@/lib/types";
@@ -13,7 +15,9 @@ const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.le
 export default function MapPage() {
   const checkins = useCheckins();
   const entries = useEntries();
+  const allValues = useValues();
   const [sel, setSel] = useState<Checkin | null>(null);
+  const [view, setView] = useState<"map" | "growth">("map");
   const today = todayStr();
 
   const data = useMemo(() => {
@@ -36,7 +40,8 @@ export default function MapPage() {
     return { mid, days, counts, thisW, prevW, lifts, monthDays };
   }, [checkins, entries, today]);
 
-  if (!data) return <div aria-busy="true" />;
+  if (!data || !allValues) return <div aria-busy="true" />;
+  const hasValues = coreValues(allValues).length > 0;
   const { mid, days, counts, thisW, prevW, lifts, monthDays } = data;
 
   if (days.length === 0) {
@@ -65,12 +70,26 @@ export default function MapPage() {
     <div className="fade-in space-y-10">
       <header>
         <h1 className="font-serif text-3xl">Map</h1>
-        <p className="mt-2 text-muted">The last 30 days. Older days fade. Tap a dot to see that day.</p>
+        <div className="mt-4 inline-flex rounded-full border border-line p-1" role="tablist" aria-label="Map views">
+          {([["map", "The last 30 days"], ["growth", "Growth + Peace"]] as const).map(([k, label]) => (
+            <button key={k} role="tab" aria-selected={view === k} onClick={() => setView(k)} className={`min-h-[40px] rounded-full px-4 text-sm transition-colors duration-calm ${view === k ? "bg-deep text-on-deep" : "text-muted hover:text-ink"}`}>{label}</button>
+          ))}
+        </div>
+        {view === "map" && <p className="mt-3 text-muted">Older days fade. Tap a dot to see that day.</p>}
       </header>
 
+      {view === "growth" ? <GrowthPeace checkins={checkins!} entries={entries!} hasValues={hasValues} today={today} /> : <>
       <section aria-label="Quadrant map">
-        <QuadrantMap days={days} mid={mid} selected={shown.id} onSelect={setSel} />
-        <p className="mt-2 text-xs text-muted">A ring around a dot means your Voice was 7 or higher that day: you were on your own side.</p>
+        <QuadrantMap days={days} mid={mid} selected={shown.id} onSelect={setSel} valuesLayer={hasValues} />
+        {hasValues ? (
+          <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted" aria-label="Legend">
+            <li className="flex items-center gap-1.5"><svg width="10" height="10" aria-hidden><circle cx="5" cy="5" r="4" fill="rgb(var(--ink))" opacity="0.7" /></svg>Lived a value</li>
+            <li className="flex items-center gap-1.5"><svg width="10" height="10" aria-hidden><circle cx="5" cy="5" r="3.5" fill="none" stroke="rgb(var(--ink))" strokeWidth="1.5" opacity="0.7" /></svg>Other days</li>
+            <li className="flex items-center gap-1.5"><svg width="14" height="14" aria-hidden><circle cx="7" cy="7" r="6" fill="none" stroke="rgb(var(--sea))" strokeWidth="1.25" /></svg>Voice 7 or higher</li>
+          </ul>
+        ) : (
+          <p className="mt-2 text-xs text-muted">A ring around a dot means your Voice was 7 or higher that day: you were on your own side.</p>
+        )}
         <p className="mt-1 text-xs text-muted">{mid.personal ? "Dividing lines are your own typical Drive and Peace." : "Dividing lines sit at 5.5 until you have two weeks of check-ins."}</p>
         <div className="mt-4 rounded-2xl border border-line bg-surface p-5" aria-live="polite">
           <p className="text-sm text-muted">{formatLong(shown.localDate)}</p>
@@ -78,6 +97,8 @@ export default function MapPage() {
             Drive {shown.drive} · Peace {shown.peace}{shown.peaceAfter ? ` → ${shown.peaceAfter}` : ""}{shown.voice != null ? ` · Voice ${shown.voice}` : ""}
           </p>
           <p className="text-[15px] text-muted">{QUADRANT_INFO[q].name}: {QUADRANT_INFO[q].line}</p>
+          {q === "ballast" && hasValues && <p className="text-sm text-muted">Your values are the ballast. Ballast days are when you feel it: settled and hungry at once.</p>}
+          {shown.floorValueId && <p className="mt-2 text-[15px]">Carried {allValues.find((v) => v.id === shown.floorValueId)?.name ?? "a value"}{shown.evidence ? <>: <span className="font-serif">{shown.evidence}</span></> : "."}</p>}
           <Link href={`/archive?date=${shown.localDate}`} className="mt-2 inline-block text-[15px] text-brass-ink underline underline-offset-4">Read that day's entries</Link>
         </div>
         <details className="mt-3 text-[15px]">
@@ -124,6 +145,7 @@ export default function MapPage() {
         <p className="mt-1 text-[15px] text-muted">Before and after, by practice, using the days you rated again at close.</p>
         <Link href="/insights" className="mt-3 inline-block text-[15px] text-brass-ink underline underline-offset-4">See what moves you</Link>
       </section>
+      </>}
     </div>
   );
 }

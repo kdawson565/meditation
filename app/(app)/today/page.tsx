@@ -2,14 +2,16 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { db } from "@/lib/db";
-import { useCheckins, useEntries, useProfile } from "@/lib/hooks";
+import { useCheckins, useEntries, useProfile, useValues } from "@/lib/hooks";
 import { addDays, addMonths, daysInMonth, formatLong, greeting, todayStr } from "@/lib/dates";
 import { PRACTICES, availablePractices } from "@/lib/practices";
 import { midlines } from "@/lib/quadrant";
 import { suggestPractice } from "@/lib/selection";
 import { pickResurfacing, type Resurfacing } from "@/lib/resurface";
-import { saveCheckin, saveEntry, setAfter, setSailAdvocate, setSailResult } from "@/lib/store";
-import type { Entry, PracticeId, SailResult } from "@/lib/types";
+import { saveCheckin, saveEntry, setAfter, setDayValues, setSailAdvocate, setSailResult } from "@/lib/store";
+import { coreValues, unsureSails } from "@/lib/values";
+import { EvidenceCard, ValueChips, ValuesInvite } from "@/components/ValueBits";
+import type { Checkin, Entry, PracticeId, SailResult, Value } from "@/lib/types";
 import BreathGate from "@/components/BreathGate";
 import DialSlider from "@/components/DialSlider";
 import TagInput from "@/components/TagInput";
@@ -27,6 +29,8 @@ export default function TodayPage() {
   const profile = useProfile();
   const checkins = useCheckins();
   const entries = useEntries();
+  const allValues = useValues();
+  const values = useMemo(() => coreValues(allValues), [allValues]);
   const today = todayStr();
 
   const [step, setStep] = useState<Step>("dials");
@@ -42,6 +46,8 @@ export default function TodayPage() {
   const [checkBack, setCheckBack] = useState(1);
   const [sail, setSail] = useState("");
   const [floor, setFloor] = useState("");
+  const [floorValueId, setFloorValueId] = useState<string | undefined>();
+  const [sailValue, setSailValue] = useState<string | undefined>();
   const [saving, setSaving] = useState(false);
   const [resurfaced, setResurfaced] = useState<Resurfacing | null>(null);
   const [checkinId, setCheckinId] = useState<string | undefined>();
@@ -65,7 +71,16 @@ export default function TodayPage() {
     setDrive(todayCheckin?.drive ?? 5);
     setPeace(todayCheckin?.peace ?? 5);
     setVoice(todayCheckin?.voice ?? 5);
+    setFloorValueId(todayCheckin?.floorValueId);
   }, [checkins, todayCheckin, drive]);
+
+  // Yesterday's value, asked about once in the morning if no evidence line was written. Snapshot so it doesn't vanish mid-typing.
+  const [yesterday, setYesterday] = useState<Checkin | null>(null);
+  useEffect(() => {
+    if (yesterday || !checkins) return;
+    const y = checkins.find((c) => c.localDate === addDays(today, -1));
+    if (y?.floorValueId && !y.evidence) setYesterday(y);
+  }, [checkins, today, yesterday]);
 
   // The most recent unanswered Sail from the last few days, asked about once at the next check-in.
   const openSail: Entry | undefined = useMemo(
@@ -76,7 +91,7 @@ export default function TodayPage() {
   useEffect(() => { if (openSail && !sailEntry) setSailEntry(openSail); }, [openSail, sailEntry]);
 
   const suggestion = useMemo(
-    () => (drive != null && peace != null && entries ? suggestPractice({ drive, peace, voice, today, entries, mid, countedDays: profile?.countedDays, hasEnough: Object.values(profile?.enough ?? {}).some(Boolean) }) : null),
+    () => (drive != null && peace != null && entries ? suggestPractice({ drive, peace, voice, today, entries, mid, unsureSails: unsureSails(entries, addDays(today, -14)), countedDays: profile?.countedDays, hasEnough: Object.values(profile?.enough ?? {}).some(Boolean) }) : null),
     [drive, peace, voice, entries, today, mid, profile],
   );
   const base = aiPick ?? suggestion;
@@ -86,7 +101,10 @@ export default function TodayPage() {
   const monthPrefix = today.slice(0, 7);
   const daysPracticed = useMemo(() => new Set((checkins ?? []).filter((c) => c.localDate.startsWith(monthPrefix)).map((c) => c.localDate)).size, [checkins, monthPrefix]);
 
-  if (!profile || !checkins || !entries || drive == null || peace == null) return <div aria-busy="true" />;
+  if (!profile || !checkins || !entries || !allValues || drive == null || peace == null) return <div aria-busy="true" />;
+  const invite = values.length === 0 && !profile.valuesInviteDismissed ? <ValuesInvite /> : null;
+  const carried = values.find((v) => v.id === floorValueId);
+  const sailValueOn = !!sail.trim() && values.length > 0;
 
   const tideLabel = daysPracticed === 0 ? "The tide is out. No pressure." : `${daysPracticed} ${daysPracticed === 1 ? "day" : "days"} practiced this month`;
   const tide = <TideLine level={daysPracticed / daysInMonth(today)} label={tideLabel} />;
@@ -99,12 +117,14 @@ export default function TodayPage() {
     setTags([]);
     setSail("");
     setFloor("");
+    setSailValue(undefined);
     setChoosing(false);
   };
 
   async function finishShort() {
     setSaving(true);
     const c = await saveCheckin(today, drive!, peace!, voice);
+    if (floorValueId !== c.floorValueId) await setDayValues(c.id, { floorValueId });
     const line = (fields.line ?? "").trim();
     await saveEntry({ localDate: today, practice: "short_day", prompt: PRACTICES.short_day.prompt, fields: { line }, body: line, tags: [], sail: sail.trim() || undefined, checkinId: c.id });
     setResurfaced(null);
@@ -127,10 +147,12 @@ export default function TodayPage() {
       body: clean[bodyKey] ?? "",
       tags,
       sail: skipIntention ? undefined : sail.trim() || undefined,
-      floor: skipIntention ? undefined : floor.trim() || undefined,
+      floor: skipIntention || values.length ? undefined : floor.trim() || undefined,
+      sailValue: skipIntention || !sail.trim() ? undefined : sailValue,
       checkinId: c.id,
       resurfaceOn: p.checkBack ? addMonths(today, p.checkBack[checkBack].months) : undefined,
     });
+    if (!skipIntention && values.length && floorValueId !== c.floorValueId) await setDayValues(c.id, { floorValueId });
     setDistress(suggestsDistress([...Object.values(clean), sail, floor]));
     const shown = await db.resurfaced.toArray();
     const r = pickResurfacing({ entries: await db.entries.toArray(), shown, today, peace: c.peace, enough: profile!.enough, excludeId: entry.id });
@@ -151,6 +173,8 @@ export default function TodayPage() {
           <p className="mt-2 text-muted">Drive {todayCheckin?.drive} · Peace {todayCheckin?.peace}{todayCheckin?.voice != null && ` · Voice ${todayCheckin.voice}`}. That's enough for today, though you're welcome to add more.</p>
         </div>
         {tide}
+        {todayCheckin && values.length > 0 && <EvidenceCard key={todayCheckin.id} checkin={todayCheckin} values={values} when="today" />}
+        {invite}
         <Nudges />
         <ul className="space-y-3">
           {todayEntries.map((e) => (
@@ -186,6 +210,7 @@ export default function TodayPage() {
             <p className="font-serif text-lg leading-relaxed">Some of what you wrote sounded heavy. Ballast isn't a therapist and can't be there the way a person can. If this is more than a rough patch, please reach out to someone you trust, or a crisis line. In the US you can call or text 988.</p>
           </aside>
         )}
+        {checkinId && values.length > 0 && new Date().getHours() >= 17 && <CloseEvidence checkinId={checkinId} checkins={checkins} values={values} />}
         {resurfaced && <ResurfacedCard r={resurfaced} />}
         <LensIdea lenses={profile.lenses} practice={p.id} seed={today} offset={1} variant="card" />
         {checkinId && (
@@ -219,12 +244,14 @@ export default function TodayPage() {
     return (
       <div className="fade-in space-y-8">
         <Header name={profile.name} />
+        {invite}
         <Nudges />
-        {sailEntry && <SailCheck entry={sailEntry} today={today} answer={sailAnswer} onAnswer={(r) => { setSailAnswer(r); void setSailResult(sailEntry.id, r); }} onAdvocate={(t) => void setSailAdvocate(sailEntry.id, t)} />}
+        {sailEntry && <SailCheck entry={sailEntry} today={today} answer={sailAnswer} carried={values.length ? allValues.find((v) => v.id === checkins.find((c) => c.localDate === sailEntry.localDate)?.floorValueId) : undefined} onAnswer={(r) => { setSailAnswer(r); void setSailResult(sailEntry.id, r); }} onAdvocate={(t) => void setSailAdvocate(sailEntry.id, t)} />}
+        {yesterday && values.length > 0 && <EvidenceCard key={yesterday.id} checkin={yesterday} values={values} when="yesterday" />}
         <DialSlider label="Drive" hint="How hungry, focused and in motion do you feel?" low="Idle" high="Charging" value={drive} onChange={setDrive} ghost={todayCheckin ? undefined : lastCheckin?.drive} />
         <DialSlider label="Peace" hint="How settled, present and “enough” do you feel?" low="Restless" high="Settled" value={peace} onChange={setPeace} ghost={todayCheckin ? undefined : lastCheckin?.peace} />
         <DialSlider label="Voice" hint="How have you been talking to yourself: more critic, or more advocate?" low="Critic" high="Advocate" value={voice} onChange={setVoice} ghost={todayCheckin ? undefined : lastCheckin?.voice} />
-        <p className="text-sm text-muted">Be honest. There's no right answer for Drive or Peace. They're just a bearing. Voice is the one to grow, toward an inner voice that's on your side.</p>
+        <p className="text-sm text-muted">These measure how today feels, not how well you're doing. There's no right answer, only an honest one.</p>
         <button className="btn w-full sm:w-auto" onClick={async () => {
           await saveCheckin(today, drive, peace, voice);
           setStep("breath");
@@ -268,6 +295,7 @@ export default function TodayPage() {
           <label htmlFor="sail" className="mb-2 block text-[15px]">Sail: what I'm reaching for today <span className="text-muted">(optional)</span></label>
           <input id="sail" className="field serif" value={sail} onChange={(e) => setSail(e.target.value)} placeholder="Today I'm going for…" />
         </div>
+        {values.length > 0 && <FloorValue values={values} value={floorValueId} onChange={setFloorValueId} carried={carried} />}
         <div className="flex items-center gap-3">
           <button className="btn" onClick={() => void finishShort()} disabled={saving || !(fields.line ?? "").trim()}>{saving ? "Saving…" : "Close today"}</button>
           <button className="btn-quiet rounded-full" onClick={() => setStep("dials")}>Back</button>
@@ -359,16 +387,31 @@ export default function TodayPage() {
     <div className="fade-in space-y-7">
       <div>
         <h1 className="font-serif text-3xl">Floor & Sail</h1>
-        <p className="mt-2 text-muted">One line for what you're reaching for, and one for what stays true either way. Both optional.</p>
+        <p className="mt-2 text-muted">{values.length ? "Your values are the ballast. Your goals are the sails. Both optional." : "One line for what you're reaching for, and one for what stays true either way. Both optional."}</p>
       </div>
+      {values.length > 0 && <FloorValue values={values} value={floorValueId} onChange={setFloorValueId} carried={carried} />}
       <div>
         <label htmlFor="sail" className="mb-2 block text-[15px]">Sail: what I'm reaching for today</label>
         <input id="sail" className="field serif" value={sail} onChange={(e) => setSail(e.target.value)} placeholder="Today I'm going for…" />
       </div>
-      <div>
-        <label htmlFor="floor" className="mb-2 block text-[15px]">Floor: what stays true even if today goes badly</label>
-        <input id="floor" className="field serif" value={floor} onChange={(e) => setFloor(e.target.value)} placeholder="Whatever happens, I still have…" />
-      </div>
+      {sailValueOn && (
+        <div>
+          <p id="sail-value" className="mb-2 text-[15px]">Which value does this serve?</p>
+          <ValueChips values={values} value={sailValue} onChange={setSailValue} label="Which value does this Sail serve" extra={[{ id: "unsure", name: "Not sure" }]} />
+          {sailValue === "unsure" && (
+            <p className="mt-2 text-sm text-muted">
+              That's fine. Not every goal has to justify itself.
+              {unsureSails(entries, addDays(today, -14)) >= 1 && " If it keeps coming up, “Whose hunger is this?” can help sort your own ambitions from borrowed ones."}
+            </p>
+          )}
+        </div>
+      )}
+      {values.length === 0 && (
+        <div>
+          <label htmlFor="floor" className="mb-2 block text-[15px]">Floor: what stays true even if today goes badly</label>
+          <input id="floor" className="field serif" value={floor} onChange={(e) => setFloor(e.target.value)} placeholder="Whatever happens, I still have…" />
+        </div>
+      )}
       <div className="flex items-center gap-3">
         <button className="btn" onClick={() => finish()} disabled={saving}>
           {saving ? "Saving…" : "Close today"}
@@ -384,7 +427,7 @@ export default function TodayPage() {
 const SAIL_CHOICES: [SailResult, string][] = [["filled", "Filled"], ["partly", "Partly"], ["not", "Not this time"]];
 
 /** Closes the loop on the last Sail. On a miss, the Floor written that day comes back, so a miss lands softly. */
-function SailCheck({ entry, today, answer, onAnswer, onAdvocate }: { entry: Entry; today: string; answer: SailResult | null; onAnswer: (r: SailResult) => void; onAdvocate: (text: string) => void }) {
+function SailCheck({ entry, today, answer, carried, onAnswer, onAdvocate }: { entry: Entry; today: string; answer: SailResult | null; carried?: Value; onAnswer: (r: SailResult) => void; onAdvocate: (text: string) => void }) {
   const [advocate, setAdvocate] = useState(entry.sailAdvocate ?? "");
   const [kept, setKept] = useState(false);
   const when = entry.localDate === addDays(today, -1) ? "Yesterday's Sail" : "Your last Sail";
@@ -402,7 +445,9 @@ function SailCheck({ entry, today, answer, onAnswer, onAdvocate }: { entry: Entr
       {answer === "filled" && <p className="text-[15px] text-muted">Noted. That's momentum.</p>}
       {answer && answer !== "filled" && (
         <p className="text-[15px] text-muted">
-          {entry.floor ? <>Your Floor held either way: <span className="font-serif text-ink">{entry.floor}</span></> : "Noted. A Sail is a direction, not a verdict."}
+          {entry.floor ? <>Your Floor held either way: <span className="font-serif text-ink">{entry.floor}</span></>
+            : carried ? <>The result moves. The value holds. You still carried <span className="font-serif text-ink">{carried.name}</span>{carried.definition ? <>: {carried.definition}</> : "."}</>
+            : "Noted. A Sail is a direction, not a verdict."}
         </p>
       )}
       {answer && answer !== "filled" && (
@@ -429,4 +474,22 @@ function Header({ name }: { name: string }) {
       </h1>
     </header>
   );
+}
+
+/** "Today I carry: Presence", with their own definition beneath. */
+function FloorValue({ values, value, onChange, carried }: { values: Value[]; value?: string; onChange: (id: string | undefined) => void; carried?: Value }) {
+  return (
+    <div>
+      <p className="mb-2 text-[15px]">Floor: today I carry{carried ? <span className="font-medium"> {carried.name}</span> : "…"}</p>
+      <ValueChips values={values} value={value} onChange={onChange} label="Today I carry" />
+      {carried?.definition && <p className="mt-2 font-serif text-[17px] leading-relaxed text-muted">{carried.definition}</p>}
+    </div>
+  );
+}
+
+/** At close in the evening, the evidence line is right there. Reads the fresh check-in so the Floor value is current. */
+function CloseEvidence({ checkinId, checkins, values }: { checkinId: string; checkins: Checkin[]; values: Value[] }) {
+  const c = checkins.find((x) => x.id === checkinId);
+  if (!c) return null;
+  return <EvidenceCard key={c.id + (c.floorValueId ?? "")} checkin={c} values={values} when="today" />;
 }

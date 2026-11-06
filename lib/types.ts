@@ -20,6 +20,8 @@ export interface Profile {
   theme: "system" | "light" | "dark";
   timezone: string;
   lenses?: string[];
+  /** the existing-user invitation to set values was dismissed ("Not now") */
+  valuesInviteDismissed?: boolean;
   createdAt: string;
   updatedAt: string;
   dirty: 0 | 1;
@@ -34,6 +36,24 @@ export interface Checkin {
   voice?: number;
   peaceAfter?: number;
   driveAfter?: number;
+  /** the value carried today (the Floor, when values are set) */
+  floorValueId?: string;
+  /** one line: a moment today the value was lived. Optional; a blank day is never "missed". */
+  evidence?: string;
+  createdAt: string;
+  updatedAt: string;
+  dirty: 0 | 1;
+}
+
+/** A value the person has chosen. Values are never hard-deleted: dropping one sets core=false so old days still show its name. */
+export interface Value {
+  id: string;
+  name: string;
+  /** in their own words: "On a good day, this looks like…" */
+  definition: string;
+  position: number;
+  core: boolean;
+  custom: boolean;
   createdAt: string;
   updatedAt: string;
   dirty: 0 | 1;
@@ -53,6 +73,8 @@ export interface Entry {
   sailResult?: SailResult;
   /** on a missed Sail: what their advocate would say */
   sailAdvocate?: string;
+  /** which value the Sail serves: a value id, or "unsure" */
+  sailValue?: string;
   checkinId?: string;
   resurfaceOn?: string; // YYYY-MM-DD
   createdAt: string;

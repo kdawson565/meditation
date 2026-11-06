@@ -3,7 +3,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useProfile } from "@/lib/hooks";
 import Link from "next/link";
-import { saveProfile, emptyEnough } from "@/lib/store";
+import { saveProfile, saveValues, emptyEnough } from "@/lib/store";
+import ValuesSetup, { type ChosenValue } from "@/components/ValuesSetup";
 import { loadSample } from "@/lib/seed";
 import LensPicker from "@/components/LensPicker";
 import Logo from "@/components/Logo";
@@ -27,6 +28,7 @@ export default function Onboarding() {
   const [notify, setNotify] = useState(false);
   const [ai, setAi] = useState(false);
   const [lenses, setLenses] = useState<string[]>([]);
+  const [values, setValues] = useState<ChosenValue[]>([]);
   const [busy, setBusy] = useState(false);
   const existing = useProfile();
   // Signing in on a new device can bring a profile down from the cloud while this screen is open.
@@ -34,7 +36,8 @@ export default function Onboarding() {
 
   const finish = async () => {
     setBusy(true);
-    await saveProfile({ name: name.trim(), enough, ritualTime: time, countedDays: counted, notify, aiConsent: ai, lenses });
+    await saveProfile({ name: name.trim(), enough, ritualTime: time, countedDays: counted, notify, aiConsent: ai, lenses, valuesInviteDismissed: values.length === 0 });
+    if (values.length) await saveValues(values);
     router.replace("/today");
   };
 
@@ -48,9 +51,10 @@ export default function Onboarding() {
         {step === 0 && (
           <>
             <Logo size="lg" affirmation />
-            <h1 className="mt-4 font-serif text-4xl leading-tight">Feel full, and stay hungry.</h1>
+            <h1 className="mt-4 font-serif text-4xl leading-tight">Grow without losing your peace.</h1>
+            <p className="mt-2 font-serif text-2xl text-muted">Feel full, and stay hungry.</p>
             <p className="mt-5 font-serif text-xl leading-relaxed text-muted">
-              Gratitude isn't the opposite of ambition. It's ballast. The steadier you are, the more sail you can carry. Ballast trains three things together: peace, drive, and an inner voice that's on your side. A few quiet minutes a day, and nothing here will ever tell you to want less.
+              Goals are never enough on their own. Each one gets replaced by the next. Values can't be finished, only lived, so the treadmill can't take them from you. Your values are the ballast. Your goals are the sails. The steadier the ballast, the more sail you can carry. A few quiet minutes a day, and nothing here will ever tell you to want less.
             </p>
             <Next onClick={() => setStep(1)} label="Begin" />
             <div className="mt-8 space-y-2 text-[15px]">
@@ -64,13 +68,16 @@ export default function Onboarding() {
           </>
         )}
         {step === 1 && (
+          <ValuesSetup initial={values} doneLabel="Continue" onBack={() => { setValues([]); setStep(2); }} onDone={(v) => { setValues(v); setStep(2); }} />
+        )}
+        {step === 2 && (
           <>
             <h1 className="font-serif text-3xl">What should we call you?</h1>
             <input className="field serif mt-6" value={name} onChange={(e) => setName(e.target.value)} placeholder="First name" autoComplete="given-name" aria-label="Your name" />
-            <Next onClick={() => setStep(2)} />
+            <Next onClick={() => setStep(3)} />
           </>
         )}
-        {step === 2 && (
+        {step === 3 && (
           <>
             <h1 className="font-serif text-3xl">Where is your Enough Line?</h1>
             <p className="mt-3 text-muted">Concretely, what would “enough” look like? It isn't a ceiling. You can keep climbing. It's just a line you can check against. All four are optional.</p>
@@ -82,27 +89,27 @@ export default function Onboarding() {
                 </div>
               ))}
             </div>
-            <Next onClick={() => setStep(3)} />
+            <Next onClick={() => setStep(4)} />
           </>
         )}
-        {step === 3 && (
+        {step === 4 && (
           <>
             <h1 className="font-serif text-3xl">Eleven voices, all in the room</h1>
             <p className="mt-3 text-muted">Ballast weaves short ideas from all of these thinkers into your practice, always in its own words and never as a quotation. Anyone you'd like to hear from more often? Tap as many as you like. Optional, and you can change it any time.</p>
             <div className="mt-6"><LensPicker value={lenses} onChange={setLenses} /></div>
-            <Next onClick={() => setStep(4)} label="Continue" />
+            <Next onClick={() => setStep(5)} label="Continue" />
           </>
         )}
-        {step === 4 && (
+        {step === 5 && (
           <>
             <h1 className="font-serif text-3xl">When would you like to practice?</h1>
             <p className="mt-3 text-muted">Whenever suits you. Morning tends to work best, but there's no wrong answer.</p>
             <label htmlFor="rt" className="sr-only">Ritual time</label>
             <input id="rt" type="time" className="field mt-6 !w-auto" value={time} onChange={(e) => setTime(e.target.value)} />
-            <Next onClick={() => setStep(5)} />
+            <Next onClick={() => setStep(6)} />
           </>
         )}
-        {step === 5 && (
+        {step === 6 && (
           <>
             <h1 className="font-serif text-3xl">A few gentle choices</h1>
             <div className="mt-6 space-y-4">

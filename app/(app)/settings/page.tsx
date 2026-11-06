@@ -2,8 +2,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useProfile } from "@/lib/hooks";
-import { saveProfile } from "@/lib/store";
+import { useProfile, useValues } from "@/lib/hooks";
+import { saveProfile, setValueDefinition } from "@/lib/store";
+import { coreValues, exampleFor } from "@/lib/values";
 import { db, wipeLocal } from "@/lib/db";
 import { download, exportJSON, exportMarkdown } from "@/lib/export";
 import { loadSample } from "@/lib/seed";
@@ -22,6 +23,7 @@ const ENOUGH: { key: keyof EnoughLine; label: string }[] = [
 
 export default function SettingsPage() {
   const profile = useProfile();
+  const values = useValues();
   const router = useRouter();
   const [email, setEmail] = useState<string | null>(null);
   const [status, setStatus] = useState("");
@@ -89,6 +91,22 @@ export default function SettingsPage() {
             ))}
           </div>
         </div>
+      </section>
+
+      <section aria-labelledby="s-values" className="space-y-4">
+        <h2 id="s-values" className="font-serif text-xl">Your values</h2>
+        <p className="text-[15px] text-muted">Goals move. Values hold. These are what you carry each day.</p>
+        {coreValues(values).length ? (
+          coreValues(values).map((v) => (
+            <div key={v.id}>
+              <label htmlFor={`val-${v.id}`} className="mb-2 block text-[15px]"><span className="font-medium">{v.name}</span>: on a good day, this looks like…</label>
+              <input id={`val-${v.id}`} className="field serif" defaultValue={v.definition} placeholder={exampleFor(v.name)} maxLength={200} onBlur={(e) => e.target.value.trim() !== v.definition && void setValueDefinition(v.id, e.target.value)} />
+            </div>
+          ))
+        ) : (
+          <p className="text-[15px]">You haven't chosen any yet. It takes about three minutes, and the daily ritual works the same either way.</p>
+        )}
+        <Link href="/values" className="btn btn-ghost">{coreValues(values).length ? "Change your values" : "Choose your values"}</Link>
       </section>
 
       <section aria-labelledby="s-enough" className="space-y-4">
