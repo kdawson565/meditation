@@ -1,7 +1,7 @@
 import { db, now } from "./db";
 import { scheduleSync } from "./sync";
 import { uid } from "./dates";
-import type { Audit, Checkin, Entry, EnoughLine, LedgerItem, Profile, Reflection, SailResult, Thank, Value } from "./types";
+import type { AiOutput, PracticeId, Audit, Checkin, Entry, EnoughLine, LedgerItem, Profile, Reflection, SailResult, Thank, Value } from "./types";
 import { addDays, todayStr } from "./dates";
 
 export const emptyEnough: EnoughLine = { money: "", health: "", relationships: "", time: "" };
@@ -116,10 +116,11 @@ export async function updateThank(id: string, patch: Partial<Thank>) {
 }
 
 // ───── Reflections
-export async function saveReflection(weekStart: string, body: string, source: "ai" | "local") {
+export async function saveReflection(weekStart: string, body: string, source: "ai" | "local", extra: { cardIds?: string[]; practiceId?: PracticeId } = {}) {
   const t = now();
   const existing = await db.reflections.where("weekStart").equals(weekStart).first();
-  const r: Reflection = existing ? { ...existing, body, source, updatedAt: t, dirty: 1 } : { id: uid(), weekStart, body, source, createdAt: t, updatedAt: t, dirty: 1 };
+  const fields = { body, source, cardIds: extra.cardIds ?? [], practiceId: extra.practiceId };
+  const r: Reflection = existing ? { ...existing, ...fields, updatedAt: t, dirty: 1 } : { id: uid(), weekStart, ...fields, createdAt: t, updatedAt: t, dirty: 1 };
   await db.reflections.put(r);
   scheduleSync();
   return r;
@@ -159,5 +160,22 @@ export async function setDayValues(checkinId: string, patch: { floorValueId?: st
   const clean: Partial<Checkin> = { ...patch };
   if (patch.evidence !== undefined) clean.evidence = patch.evidence.trim() || undefined;
   await db.checkins.update(checkinId, { ...clean, updatedAt: now(), dirty: 1 });
+  scheduleSync();
+}
+
+/** Save or unsave a Library card. Unsaving keeps a tombstone so other devices learn about it. */
+export async function setCardSaved(cardId: string, saved: boolean) {
+  const t = now();
+  const existing = await db.savedCards.get(cardId);
+  if (saved) await db.savedCards.put({ id: cardId, savedAt: existing && !existing.deletedAt ? existing.savedAt : t, createdAt: existing?.createdAt ?? t, updatedAt: t, dirty: 1 });
+  else if (existing) await db.savedCards.put({ ...existing, deletedAt: t, updatedAt: t, dirty: 1 });
+  scheduleSync();
+}
+
+/** Keep something the AI wrote. Same id overwrites (an Ask session grows turn by turn). */
+export async function saveAiOutput(o: Omit<AiOutput, "createdAt" | "updatedAt" | "dirty">) {
+  const t = now();
+  const existing = await db.aiOutputs.get(o.id);
+  await db.aiOutputs.put({ ...o, createdAt: existing?.createdAt ?? t, updatedAt: t, dirty: 1 });
   scheduleSync();
 }

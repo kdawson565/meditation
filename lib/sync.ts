@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { supabase } from "./supabase";
 import type { Table } from "dexie";
-import type { Audit, Checkin, Entry, LedgerItem, Profile, Reflection, Thank, Value } from "./types";
+import type { AiOutput, Audit, Checkin, Entry, LedgerItem, Profile, Reflection, SavedCard, Thank, Value } from "./types";
 
 /**
  * Local-first sync. Everything is written to IndexedDB first (so the ritual works offline),
@@ -15,6 +15,8 @@ interface Mapper<T extends { id: string; updatedAt: string; dirty: 0 | 1 }> {
   table: Table<T, string>;
   toRow: (x: T, userId: string) => Record<string, unknown>;
   fromRow: (r: Record<string, any>) => T; // eslint-disable-line @typescript-eslint/no-explicit-any
+  /** upsert conflict target; defaults to "id" */
+  conflict?: string;
 }
 
 const phase2: Mapper<any>[] = [ // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -39,16 +41,27 @@ const phase2: Mapper<any>[] = [ // eslint-disable-line @typescript-eslint/no-exp
     fromRow: (r): Thank => ({ id: r.id, person: r.person, reason: r.reason, status: r.status, draft: r.draft ?? undefined, sentAt: r.sent_at ?? undefined, createdAt: r.created_at, updatedAt: r.updated_at, deletedAt: r.deleted_at ?? undefined, dirty: 0 }),
   },
   {
+    // keyed by (user, card id): the same card saved on two devices is one row
+    name: "saved_cards", table: db.savedCards, conflict: "user_id,id",
+    toRow: (x: SavedCard, u) => ({ id: x.id, user_id: u, saved_at: x.savedAt, created_at: x.createdAt, updated_at: x.updatedAt, deleted_at: x.deletedAt ?? null }),
+    fromRow: (r): SavedCard => ({ id: r.id, savedAt: r.saved_at, createdAt: r.created_at, updatedAt: r.updated_at, deletedAt: r.deleted_at ?? undefined, dirty: 0 }),
+  },
+  {
     name: "reflections", table: db.reflections,
-    toRow: (x: Reflection, u) => ({ id: x.id, user_id: u, week_start: x.weekStart, body: x.body, source: x.source, created_at: x.createdAt, updated_at: x.updatedAt }),
-    fromRow: (r): Reflection => ({ id: r.id, weekStart: r.week_start, body: r.body, source: r.source, createdAt: r.created_at, updatedAt: r.updated_at, dirty: 0 }),
+    toRow: (x: Reflection, u) => ({ id: x.id, user_id: u, week_start: x.weekStart, body: x.body, source: x.source, card_ids: x.cardIds ?? [], practice_id: x.practiceId ?? null, created_at: x.createdAt, updated_at: x.updatedAt }),
+    fromRow: (r): Reflection => ({ id: r.id, weekStart: r.week_start, body: r.body, source: r.source, cardIds: r.card_ids ?? [], practiceId: r.practice_id ?? undefined, createdAt: r.created_at, updatedAt: r.updated_at, dirty: 0 }),
+  },
+  {
+    name: "ai_outputs", table: db.aiOutputs, conflict: "user_id,id",
+    toRow: (x: AiOutput, u) => ({ id: x.id, user_id: u, kind: x.kind, body: x.body, card_ids: x.cardIds, data: x.data ?? null, created_at: x.createdAt, updated_at: x.updatedAt, deleted_at: x.deletedAt ?? null }),
+    fromRow: (r): AiOutput => ({ id: r.id, kind: r.kind, body: r.body ?? "", cardIds: r.card_ids ?? [], data: r.data ?? undefined, createdAt: r.created_at, updatedAt: r.updated_at, deletedAt: r.deleted_at ?? undefined, dirty: 0 }),
   },
 ];
 
 async function pushMapped(sb: SB, userId: string, m: Mapper<any>) { // eslint-disable-line @typescript-eslint/no-explicit-any
   const rows = await m.table.where("dirty").equals(1).toArray();
   if (!rows.length) return;
-  const { error } = await sb.from(m.name).upsert(rows.map((r) => m.toRow(r, userId)), { onConflict: "id" });
+  const { error } = await sb.from(m.name).upsert(rows.map((r) => m.toRow(r, userId)), { onConflict: m.conflict ?? "id" });
   if (error) throw error;
   await m.table.bulkPut(rows.map((r) => ({ ...r, dirty: 0 as const })));
 }

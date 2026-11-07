@@ -1,8 +1,18 @@
 "use client";
+import { useEffect, useState } from "react";
 
-/** The hull: a small vessel outline whose water line rises with the share of this month's days practiced. */
-export default function TideLine({ level, label }: { level: number; label: string }) {
-  const l = Math.max(0.04, Math.min(1, level));
+/**
+ * The hull: a small vessel outline whose water line rises with the share of this month's days practiced.
+ * Pass `from` to rise gently from an earlier level (on ritual completion). Reduced motion makes it instant.
+ */
+export default function TideLine({ level, label, from }: { level: number; label: string; from?: number }) {
+  const [shown, setShown] = useState(from ?? level);
+  useEffect(() => {
+    if (from == null) { setShown(level); return; }
+    const t = setTimeout(() => setShown(level), 350);
+    return () => clearTimeout(t);
+  }, [level, from]);
+  const l = Math.max(0.04, Math.min(1, shown));
   const y = 78 - l * 62; // water surface y inside the hull (78 = bottom, 16 = top)
   return (
     <figure className="m-0 flex items-center gap-4" aria-label={label}>
@@ -13,7 +23,7 @@ export default function TideLine({ level, label }: { level: number; label: strin
           </clipPath>
         </defs>
         <g clipPath="url(#hull)">
-          <g style={{ transform: `translateY(${y}px)`, transition: "transform 1200ms cubic-bezier(0.22,0.61,0.36,1)" }}>
+          <g style={{ transform: `translateY(${y}px)`, transition: "transform 1600ms cubic-bezier(0.22,0.61,0.36,1)" }}>
             <g className="wave-b" style={{ opacity: 0.45 }}>
               <path d="M0 6 Q15 0 30 6 T60 6 T90 6 T120 6 T150 6 T180 6 T210 6 T240 6 V120 H0z" fill="rgb(var(--sea))" />
             </g>
@@ -22,8 +32,8 @@ export default function TideLine({ level, label }: { level: number; label: strin
             </g>
           </g>
         </g>
-        <path d="M10 28h100l-14 56a8 8 0 0 1-8 6H32a8 8 0 0 1-8-6z" fill="none" stroke="rgb(var(--ink))" strokeWidth="2" strokeLinejoin="round" />
-        <path d="M60 28V6M60 6l22 18H60" fill="none" stroke="rgb(var(--brass))" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+        <path d="M10 28h100l-14 56a8 8 0 0 1-8 6H32a8 8 0 0 1-8-6z" fill="none" stroke="rgb(var(--ink))" strokeWidth="1.5" strokeLinejoin="round" />
+        <path d="M60 28V6M60 6l22 18H60" fill="none" stroke="rgb(var(--brass))" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
       </svg>
       <figcaption className="text-[15px] leading-snug text-muted">{label}</figcaption>
     </figure>

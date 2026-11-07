@@ -16,22 +16,34 @@
   /* chart series, validated for colorblind separation against the surface */
   --chart-drive: 176 109 22;
   --chart-peace: 0 136 163;
+  /* sea green deep enough for a dot or fill on paper (3:1 for shapes; plain sea is 2.4:1) */
+  --sea-dot: 94 148 136;
+  /* quadrant dots on the Tide calendar. Validated for colorblind separation; Fog is a deliberate neutral, and shape carries identity too. */
+  --q-ballast: 33 144 122;
+  --q-grind: 178 106 18;
+  --q-harbor: 74 111 192;
+  --q-fog: 125 130 144;
   color-scheme: light;
 }
 
 :root.dark {
   --paper: 11 22 38;
-  --surface: 17 34 56;
+  --surface: 19 33 58;
   --ink: 233 228 216;
-  --muted: 156 168 184;
+  --muted: 163 169 179;
   --line: 40 58 84;
-  --sea: 127 176 165;
+  --sea: 143 189 179;
   --brass: 201 164 106;
   --brass-ink: 214 182 128;
   --deep: 233 228 216;
   --on-deep: 11 22 38;
   --chart-drive: 196 133 46;
   --chart-peace: 43 166 179;
+  --sea-dot: 143 189 179;
+  --q-ballast: 47 160 136;
+  --q-grind: 196 133 42;
+  --q-harbor: 104 137 224;
+  --q-fog: 142 149 163;
   color-scheme: dark;
 }
 
@@ -39,7 +51,8 @@ html { background: rgb(var(--paper)); }
 body {
   background: rgb(var(--paper));
   color: rgb(var(--ink));
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.45;
   -webkit-font-smoothing: antialiased;
   transition: background-color 500ms cubic-bezier(0.22, 0.61, 0.36, 1);
 }
@@ -82,7 +95,7 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.12); }
 }
 .field::placeholder { color: rgb(var(--muted) / 0.8); }
 .field:focus { outline: none; border-color: rgb(var(--brass)); }
-textarea.field.serif, input.field.serif { font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif; font-size: 18px; line-height: 1.6; }
+textarea.field.serif, input.field.serif { font-family: var(--font-serif), "Iowan Old Style", Georgia, serif; font-size: 18px; line-height: 1.6; }
 
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
@@ -94,3 +107,39 @@ textarea.field.serif, input.field.serif { font-family: "Iowan Old Style", "Palat
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .btn-quiet { background: transparent; color: rgb(var(--brass-ink)); min-height: 44px; padding: 0 12px; }
 .btn-ghost { background: transparent; color: rgb(var(--ink)); border: 1px solid rgb(var(--line)); }
+
+/* ── Design system pieces ── */
+/* One calm card: a surface with a hairline. No shadows, no gradients. */
+.card { background: rgb(var(--surface)); border: 1px solid rgb(var(--line)); border-radius: 16px; padding: 20px; }
+/* A quieter card: hairline only, on paper. For secondary things around the main card. */
+.card-quiet { border: 1px solid rgb(var(--line)); border-radius: 16px; padding: 20px; }
+.eyebrow { font-size: 13px; line-height: 1.4; letter-spacing: 0.08em; text-transform: uppercase; color: rgb(var(--muted)); }
+.chip {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 999px; font-size: 15px;
+  border: 1px solid rgb(var(--line)); transition: border-color 300ms cubic-bezier(0.22, 0.61, 0.36, 1), background-color 300ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.chip:hover { border-color: rgb(var(--muted)); }
+.chip[aria-checked="true"], .chip[aria-pressed="true"], .chip[aria-selected="true"] { border-color: rgb(var(--deep)); background: rgb(var(--deep)); color: rgb(var(--on-deep)); }
+
+/* Native dialog as a bottom sheet */
+dialog.sheet { inset: auto 0 0 0; margin: 0 auto; width: 100%; max-width: 36rem; max-height: 85dvh; padding: 0; border: 1px solid rgb(var(--line)); border-bottom: 0; border-radius: 20px 20px 0 0; background: rgb(var(--paper)); color: rgb(var(--ink)); }
+dialog.sheet[open] { animation: sheetIn 400ms cubic-bezier(0.22, 0.61, 0.36, 1) both; }
+dialog.sheet::backdrop { background: rgb(11 22 38 / 0.35); }
+@keyframes sheetIn { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+
+/* The horizon: drawn in from the left once, slowly. */
+.horizon-draw { animation: horizonDraw 600ms cubic-bezier(0.22, 0.61, 0.36, 1) both; transform-origin: left center; transform-box: fill-box; }
+@keyframes horizonDraw { from { transform: scaleX(0); opacity: 0; } to { transform: scaleX(1); opacity: 1; } }
+
+/* Print: the Tide Report prints in light colors on white, without the app's chrome. */
+@media print {
+  :root, :root.dark {
+    --paper: 255 255 255; --surface: 255 255 255; --ink: 22 34 58; --muted: 90 98 112; --line: 217 209 193;
+    --sea: 120 168 158; --sea-dot: 94 148 136; --brass: 176 141 87; --brass-ink: 122 90 40; --deep: 22 34 58; --on-deep: 246 241 231;
+    --q-ballast: 33 144 122; --q-grind: 178 106 18; --q-harbor: 74 111 192; --q-fog: 125 130 144;
+    color-scheme: light;
+  }
+  html, body { background: #fff; }
+  .card, .card-quiet { break-inside: avoid; padding: 14px; }
+  @page { margin: 14mm; }
+}

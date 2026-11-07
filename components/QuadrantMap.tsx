@@ -1,6 +1,7 @@
 "use client";
 import type { Checkin } from "@/lib/types";
 import { QUADRANT_INFO } from "@/lib/quadrant";
+import { HORIZON_STROKE } from "@/components/HorizonLine";
 
 const S = 320;
 const PAD = 26;
@@ -29,7 +30,9 @@ export default function QuadrantMap({ days, mid, selected, onSelect, valuesLayer
       <rect x={mx} y={PAD} width={S - PAD - mx} height={my - PAD} fill="rgb(var(--sea))" opacity="0.14" />
       <rect x={PAD} y={PAD} width={S - PAD * 2} height={S - PAD * 2} fill="none" stroke="rgb(var(--line))" />
       <line x1={mx} x2={mx} y1={PAD} y2={S - PAD} stroke="rgb(var(--line))" strokeDasharray="3 4" />
-      <line y1={my} y2={my} x1={PAD} x2={S - PAD} stroke="rgb(var(--line))" strokeDasharray="3 4" />
+      {/* the horizon: your typical Drive, drawn as the brass line with one soft tick at your typical Peace */}
+      <line y1={my} y2={my} x1={PAD} x2={S - PAD} stroke={HORIZON_STROKE} strokeWidth="1" className="horizon-draw" />
+      <line x1={mx} x2={mx} y1={my - 4} y2={my + 4} stroke={HORIZON_STROKE} strokeWidth="1" />
       {label(PAD + 8, PAD + 18, "grind", "start")}
       {label(S - PAD - 8, PAD + 18, "ballast", "end")}
       {label(PAD + 8, S - PAD - 10, "fog", "start")}
@@ -44,7 +47,7 @@ export default function QuadrantMap({ days, mid, selected, onSelect, valuesLayer
         return (
           <g key={c.id} style={{ cursor: "pointer" }} onClick={() => onSelect(c)}>
             <circle cx={x} cy={y} r={14} fill="transparent" />
-            {c.voice != null && c.voice >= 7 && !last && !sel && <circle cx={x} cy={y} r={7} fill="none" stroke="rgb(var(--sea))" strokeWidth="1.25" opacity={0.35 + age * 0.5} />}
+            {c.voice != null && c.voice >= 7 && !last && !sel && <circle cx={x} cy={y} r={7} fill="none" stroke="rgb(var(--sea-dot))" strokeWidth="1.25" opacity={0.35 + age * 0.5} />}
             {(last || sel) && <circle cx={x} cy={y} r={last ? 11 : 9} fill="none" stroke="rgb(var(--brass))" strokeWidth="1.5" opacity={sel ? 1 : 0.6} />}
             {valuesLayer && !c.evidence?.trim() ? (
               // hollow: a day without a noted value moment. Never "missed", just open.

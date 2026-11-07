@@ -18,7 +18,7 @@ export function ValueChips({ values, value, onChange, label, extra }: {
     <div role="radiogroup" aria-label={label} className="flex flex-wrap gap-2">
       {items.map((v) => (
         <button key={v.id} type="button" role="radio" aria-checked={value === v.id} onClick={() => onChange(value === v.id ? undefined : v.id)}
-          className={`min-h-[44px] rounded-full border px-4 text-[15px] transition-colors duration-calm ${value === v.id ? "border-deep bg-deep text-on-deep" : "border-line hover:border-muted"}`}>
+          className="chip">
           {v.name}
         </button>
       ))}

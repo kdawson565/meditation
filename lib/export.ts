@@ -1,6 +1,7 @@
 import { db } from "./db";
 import { PRACTICES } from "./practices";
 import { formatFull } from "./dates";
+import { cardById } from "./library";
 
 export async function exportJSON() {
   const [profile, checkins, entries, ledger, audits, thanks, reflections, values] = await Promise.all([db.profile.get("me"), db.checkins.toArray(), db.entries.toArray(), db.ledger.toArray(), db.audits.toArray(), db.thanks.toArray(), db.reflections.toArray(), db.values.orderBy("position").toArray()]);
@@ -21,6 +22,10 @@ export async function exportJSON() {
       thanks: thanks.filter((t) => !t.deletedAt).map(strip),
       reflections: reflections.map(strip),
       values: values.map(strip),
+      // the cards themselves live in the app; the export carries each saved card's full text so it stands alone
+      // what the AI wrote: Bearings, Ask Ballast sessions, season reviews (weekly reflections are above)
+      aiOutputs: (await db.aiOutputs.toArray()).filter((o) => !o.deletedAt).map(strip),
+      savedCards: (await db.savedCards.toArray()).filter((c) => !c.deletedAt).map((c) => ({ ...strip(c), card: cardById(c.id) ?? null })),
     },
     null,
     2,
@@ -90,6 +95,28 @@ export async function exportMarkdown() {
   if (reflections.length) {
     out.push("## Weekly reflections", "");
     for (const r of [...reflections].sort((a, b) => (a.weekStart < b.weekStart ? 1 : -1))) out.push(`### Week of ${formatFull(r.weekStart)}`, "", r.body, "");
+  }
+  const ai = (await db.aiOutputs.toArray()).filter((o) => !o.deletedAt).sort((a, b) => (a.id < b.id ? -1 : 1));
+  const src = (ids: string[]) => (ids.length ? ` *(Sources: ${ids.map((id) => cardById(id)?.title ?? id).join(", ")})*` : "");
+  const bearings = ai.filter((o) => o.kind === "bearing");
+  if (bearings.length) {
+    out.push("## Bearings", "");
+    for (const b of bearings) out.push(`- **${b.id.replace("bearing-", "")}:** ${b.body}${src(b.cardIds)}`);
+    out.push("");
+  }
+  for (const o of ai.filter((o) => o.kind === "season")) out.push(`## Season review: ${o.id.replace("season-", "Season ")}`, "", o.body + src(o.cardIds), "");
+  const asks = ai.filter((o) => o.kind === "ask");
+  if (asks.length) {
+    out.push("## Ask Ballast", "");
+    for (const a of asks) {
+      out.push(`### ${a.createdAt.slice(0, 10)}`, "");
+      for (const t of a.data?.turns ?? []) out.push(`**You:** ${t.q}`, "", t.answer, ...(t.question ? ["", `*${t.question}*`] : []), "");
+    }
+  }
+  const saved = (await db.savedCards.toArray()).filter((c) => !c.deletedAt).map((c) => cardById(c.id)).filter((c) => !!c);
+  if (saved.length) {
+    out.push("## Saved Library cards", "");
+    for (const c of saved) out.push(`### ${c!.title}`, "", c!.body, "", `*${c!.reflection_question}*`, "");
   }
   return out.join("\n");
 }

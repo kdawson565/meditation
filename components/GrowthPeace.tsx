@@ -20,7 +20,7 @@ const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.le
 interface Week { start: string; drive: number | null; peace: number | null; days: number; filled: number; sails: number }
 
 /** Drive and Peace by week, Sails filled by week, and how Peace and Drive looked on value days vs. other days. */
-export default function GrowthPeace({ checkins, entries, hasValues, today }: { checkins: Checkin[]; entries: Entry[]; hasValues: boolean; today: string }) {
+export default function GrowthPeace({ checkins, entries, hasValues, today, only }: { checkins: Checkin[]; entries: Entry[]; hasValues: boolean; today: string; only?: "trend" }) {
   const weeks: Week[] = useMemo(() => {
     const first = addDays(weekStartOf(today), -7 * (WEEKS - 1));
     return Array.from({ length: WEEKS }, (_, i) => {
@@ -61,7 +61,7 @@ export default function GrowthPeace({ checkins, entries, hasValues, today }: { c
 
   const hit = (i: number, label: string) => (
     <rect key={i} x={x(i) - (W - L - R) / (WEEKS - 1) / 2} y={0} width={(W - L - R) / (WEEKS - 1)} height={H} fill="transparent" style={{ cursor: "pointer" }}
-      onClick={() => setSel(i)} onMouseEnter={() => setSel(i)} aria-label={label} />
+      onClick={() => setSel(i)} onMouseEnter={() => setSel(i)} aria-hidden data-week={label} />
   );
 
   return (
@@ -105,6 +105,7 @@ export default function GrowthPeace({ checkins, entries, hasValues, today }: { c
         </div>
       </section>
 
+      {only !== "trend" && <>
       <section aria-labelledby="gp-sails">
         <h2 id="gp-sails" className="font-serif text-xl">Sails filled, by week</h2>
         <p className="mt-1 text-[15px] text-muted">Your follow-through: the growth you can count. Only Sails you checked back on.</p>
@@ -150,6 +151,7 @@ export default function GrowthPeace({ checkins, entries, hasValues, today }: { c
           <p className="mt-2 text-[15px] text-muted">This shows up after two weeks of check-ins, with at least five days on each side. So far: {window_.length} {window_.length === 1 ? "day" : "days"} since you started carrying values, {lived.length} with a moment you lived one.</p>
         )}
       </section>
+      </>}
     </div>
   );
 }

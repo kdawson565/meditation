@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Inter, Newsreader } from "next/font/google";
 import "./globals.css";
 import Boot from "@/components/Boot";
 
@@ -22,11 +23,15 @@ export const viewport: Viewport = {
   ],
 };
 
+// Bundled at build time and served from this app, so they work offline.
+const serif = Newsreader({ subsets: ["latin"], style: ["normal", "italic"], axes: ["opsz"], variable: "--font-serif", display: "swap" });
+const sans = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
+
 const themeScript = `try{var t=localStorage.getItem('ballast-theme');var d=t==='dark'||((!t||t==='system')&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d);}catch(e){}`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={`${serif.variable} ${sans.variable}`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>

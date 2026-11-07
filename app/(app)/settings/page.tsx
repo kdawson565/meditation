@@ -11,6 +11,8 @@ import { loadSample } from "@/lib/seed";
 import { cloudConfigured, supabase } from "@/lib/supabase";
 import { syncNow } from "@/lib/sync";
 import LensPicker from "@/components/LensPicker";
+import AiExplainer from "@/components/AiExplainer";
+import Sheet from "@/components/Sheet";
 import { disablePush, enablePush, refreshPushTime } from "@/lib/push";
 import type { EnoughLine } from "@/lib/types";
 
@@ -28,6 +30,7 @@ export default function SettingsPage() {
   const [email, setEmail] = useState<string | null>(null);
   const [status, setStatus] = useState("");
   const [confirmText, setConfirmText] = useState("");
+  const [aiAsk, setAiAsk] = useState(false);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -134,7 +137,17 @@ export default function SettingsPage() {
           if (r.ok) { await saveProfile({ notify: true }); setStatus(`Reminder on. We'll nudge you quietly around ${profile.ritualTime}, only if you haven't checked in.`); }
           else setStatus(r.reason);
         }} />
-        <Switch label="Allow AI features (reflection, thank-you drafts, practice picks)" on={profile.aiConsent} set={(b) => void saveProfile({ aiConsent: b })} />
+        <Switch label="AI features (Bearing, Ask Ballast, reflections, season reviews)" on={profile.aiConsent} set={(b) => { if (b) setAiAsk(true); else { void saveProfile({ aiConsent: false }); setStatus("AI is off. Nothing more will be sent."); } }} />
+        <p className="pb-3 text-sm text-muted">{profile.aiConsent ? "On." : "Off."} <button type="button" className="text-brass-ink underline underline-offset-4" onClick={() => setAiAsk(true)}>What's sent, exactly</button></p>
+        <Sheet open={aiAsk} onClose={() => setAiAsk(false)} title="Before you turn on AI">
+          <AiExplainer />
+          <div className="mt-6 flex flex-wrap gap-3">
+            {profile.aiConsent ? <button className="btn btn-ghost" onClick={() => setAiAsk(false)}>Done</button> : <>
+              <button className="btn" onClick={() => { void saveProfile({ aiConsent: true }); setAiAsk(false); setStatus("AI is on."); }}>Turn on AI</button>
+              <button className="btn btn-ghost" onClick={() => setAiAsk(false)}>Not now</button>
+            </>}
+          </div>
+        </Sheet>
       </section>
 
       <section aria-labelledby="s-sync" className="space-y-3">

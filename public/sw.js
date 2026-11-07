@@ -1,6 +1,6 @@
 // Ballast service worker: keeps the app usable offline. Entries themselves live in IndexedDB.
-const VERSION = "ballast-v2"; // bump when icons or the app shell change, so phones drop the old cache
-const SHELL = ["/today", "/map", "/archive", "/settings", "/onboarding"];
+const VERSION = "ballast-v3"; // bump when icons or the app shell change, so phones drop the old cache
+const SHELL = ["/today", "/tide", "/tide/report", "/map", "/library", "/you", "/archive", "/settings", "/onboarding"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

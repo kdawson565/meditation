@@ -5,10 +5,10 @@ import { db } from "@/lib/db";
 import { useCheckins, useEntries, useProfile, useValues } from "@/lib/hooks";
 import { addDays, addMonths, daysInMonth, formatLong, greeting, todayStr } from "@/lib/dates";
 import { PRACTICES, availablePractices } from "@/lib/practices";
-import { midlines } from "@/lib/quadrant";
+import { midlines, quadrantOf } from "@/lib/quadrant";
 import { suggestPractice } from "@/lib/selection";
 import { pickResurfacing, type Resurfacing } from "@/lib/resurface";
-import { saveCheckin, saveEntry, setAfter, setDayValues, setSailAdvocate, setSailResult } from "@/lib/store";
+import { saveAiOutput, saveCheckin, saveEntry, setAfter, setDayValues, setSailAdvocate, setSailResult } from "@/lib/store";
 import { coreValues, unsureSails } from "@/lib/values";
 import { EvidenceCard, ValueChips, ValuesInvite } from "@/components/ValueBits";
 import type { Checkin, Entry, PracticeId, SailResult, Value } from "@/lib/types";
@@ -16,6 +16,8 @@ import BreathGate from "@/components/BreathGate";
 import DialSlider from "@/components/DialSlider";
 import TagInput from "@/components/TagInput";
 import TideLine from "@/components/TideLine";
+import HorizonLine from "@/components/HorizonLine";
+import Bearing from "@/components/Bearing";
 import ResurfacedCard from "@/components/ResurfacedCard";
 import Nudges from "@/components/Nudges";
 import LensIdea from "@/components/LensIdea";
@@ -55,6 +57,13 @@ export default function TodayPage() {
   const [aiPick, setAiPick] = useState<{ practice: PracticeId; reason: string } | null>(null);
   const [driveAfter, setDriveAfterState] = useState<number | null>(null);
   const [sailAnswer, setSailAnswer] = useState<SailResult | null>(null);
+  // days practiced before today's first check-in, so the tide can rise from there at close
+  const [riseFrom, setRiseFrom] = useState<number | null>(null);
+  // the Floor value wasn't chosen on the card, so offer it again at the Sail
+  const [askFloorLater, setAskFloorLater] = useState(false);
+  // arrived from a Library card's "Start the practice" (/today?practice=id)
+  const [fromLibrary, setFromLibrary] = useState(false);
+  const paramHandled = useRef(false);
 
   const stepRef = useRef<Step>("dials");
   stepRef.current = step;
@@ -96,6 +105,22 @@ export default function TodayPage() {
     return last?.sailResult === "not";
   }, [entries, today]);
 
+  useEffect(() => {
+    if (paramHandled.current || !entries || !checkins) return;
+    paramHandled.current = true;
+    const id = new URLSearchParams(window.location.search).get("practice") as PracticeId | null;
+    if (!id || !PRACTICES[id] || PRACTICES[id].hidden) return;
+    window.history.replaceState(null, "", "/today");
+    if (entries.some((e) => e.localDate === today)) {
+      // already logged today: go straight to this practice as an extra one
+      setFields({}); setTags([]); setSail(""); setFloor(""); setSailValue(undefined); setChoosing(false);
+      setAdding(true);
+      setStep("practice");
+    }
+    setPractice(id);
+    setFromLibrary(true);
+  }, [entries, checkins, today]);
+
   const suggestion = useMemo(
     () => (drive != null && peace != null && entries ? suggestPractice({ drive, peace, voice, today, entries, mid, unsureSails: unsureSails(entries, addDays(today, -14)), setback, hasValues: values.length > 0, countedDays: profile?.countedDays, hasEnough: Object.values(profile?.enough ?? {}).some(Boolean) }) : null),
     [drive, peace, voice, entries, today, mid, profile, setback, values],
@@ -113,7 +138,8 @@ export default function TodayPage() {
   const sailValueOn = !!sail.trim() && values.length > 0;
 
   const tideLabel = daysPracticed === 0 ? "The tide is out. No pressure." : `${daysPracticed} ${daysPracticed === 1 ? "day" : "days"} practiced this month`;
-  const tide = <TideLine level={daysPracticed / daysInMonth(today)} label={tideLabel} />;
+  const dim = daysInMonth(today);
+  const tide = <TideLine level={daysPracticed / dim} label={tideLabel} />;
 
   const shownFields = p.fields.filter((f) => f.kind !== "value" || values.length > 0);
   const requiredOk = shownFields.every((f) => !f.required || (fields[f.key] ?? "").trim());
@@ -132,6 +158,7 @@ export default function TodayPage() {
     setSaving(true);
     const c = await saveCheckin(today, drive!, peace!, voice);
     if (floorValueId !== c.floorValueId) await setDayValues(c.id, { floorValueId });
+    if (profile!.aiConsent) void makeBearing(floorValueId);
     const line = (fields.line ?? "").trim();
     await saveEntry({ localDate: today, practice: "short_day", prompt: PRACTICES.short_day.prompt, fields: { line }, body: line, tags: [], sail: sail.trim() || undefined, checkinId: c.id });
     setResurfaced(null);
@@ -170,33 +197,103 @@ export default function TodayPage() {
     setStep("close");
   }
 
+  const leaveCard = () => {
+    setRiseFrom(todayCheckin ? null : daysPracticed);
+    setAskFloorLater(values.length > 0 && !floorValueId);
+  };
+
+  /** Today's Bearing, made once a day when you begin. Quietly skipped if the AI can't answer. */
+  async function makeBearing(floorId?: string) {
+    const id = `bearing-${today}`;
+    if (await db.aiOutputs.get(id)) return;
+    const floor = values.find((v) => v.id === floorId);
+    const weekAgo = addDays(today, -7);
+    const recentlyShown = (await db.aiOutputs.where("kind").equals("bearing").toArray()).filter((o) => o.id >= `bearing-${weekAgo}`).flatMap((o) => o.cardIds);
+    const r = await callAI<{ text: string; cardIds: string[] }>("/api/ai/bearing", {
+      date: today,
+      floor: floor ? { name: floor.name, definition: floor.definition } : undefined,
+      values: values.map((v) => ({ name: v.name, definition: v.definition })),
+      quadrant: quadrantOf(drive!, peace!, mid),
+      recentPractices: entries!.filter((e) => e.localDate >= weekAgo).map((e) => e.practice),
+      recentlyShown,
+    });
+    if (r.ok) await saveAiOutput({ id, kind: "bearing", body: r.data.text, cardIds: r.data.cardIds });
+  }
+
+  async function begin() {
+    leaveCard();
+    const c = await saveCheckin(today, drive!, peace!, voice);
+    if (values.length && floorValueId !== c.floorValueId) await setDayValues(c.id, { floorValueId });
+    setStep("breath");
+    if (profile!.aiConsent) void makeBearing(c.floorValueId ?? floorValueId);
+    // Ask Claude while the breath gate runs; if it doesn't answer in time, the rule-based pick stands.
+    if (profile!.aiConsent) {
+      const avail = availablePractices({ countedDays: profile!.countedDays, hasEnough: Object.values(profile!.enough).some(Boolean), hasValues: values.length > 0 });
+      void callAI<{ practice: PracticeId; reason: string }>("/api/ai/next-practice", {
+        drive, peace, voice, setback,
+        days: checkins!.slice(-14).map((c) => ({ date: c.localDate, drive: c.drive, peace: c.peace, voice: c.voice, peaceAfter: c.peaceAfter, driveAfter: c.driveAfter })),
+        history: entries!.slice(-14).map((e) => ({ date: e.localDate, practice: e.practice })),
+        available: avail.map((id) => ({ id, title: PRACTICES[id].title, blurb: PRACTICES[id].blurb })),
+        insights: practiceInsights(checkins!, entries!, mid.peace).map((r) => ({ practice: r.practice, n: r.n, peaceLift: Number(r.peaceLift.toFixed(1)), driveShift: r.driveShift == null ? null : Number(r.driveShift.toFixed(1)) })),
+      }).then((r) => {
+        // Never swap the practice under someone who has started writing or chosen their own.
+        if (r.ok && avail.includes(r.data.practice) && !typedRef.current && (stepRef.current === "breath" || stepRef.current === "practice")) setAiPick(r.data);
+      });
+    }
+  }
+
   // ───── already done today
   if (step === "dials" && todayEntries.length > 0 && !adding) {
+    const held = allValues.find((v) => v.id === todayCheckin?.floorValueId);
+    const todaySail = [...todayEntries].reverse().find((e) => e.sail);
+    const serves = todaySail?.sailValue && todaySail.sailValue !== "unsure" ? allValues.find((v) => v.id === todaySail.sailValue) : undefined;
     return (
-      <div className="fade-in space-y-8">
+      <div className="fade-in space-y-6">
         <Header name={profile.name} />
-        <div>
-          <h2 className="font-serif text-2xl">Today is logged.</h2>
-          <p className="mt-2 text-muted">Drive {todayCheckin?.drive} · Peace {todayCheckin?.peace}{todayCheckin?.voice != null && ` · Voice ${todayCheckin.voice}`}. That's enough for today, though you're welcome to add more.</p>
-        </div>
-        {tide}
+        {profile.aiConsent && <Bearing today={today} />}
+        <section aria-labelledby="logged-h" className="card space-y-5">
+          <div>
+            <p id="logged-h" className="eyebrow">Today is logged</p>
+            {held ? (
+              <>
+                <p className="mt-2 font-serif text-2xl">Carrying {held.name}</p>
+                {held.definition && <p className="mt-1 font-serif text-lg text-muted">{held.definition}</p>}
+              </>
+            ) : <p className="mt-2 font-serif text-2xl">That's enough for today.</p>}
+          </div>
+          {todayCheckin && (
+            <dl className="grid grid-cols-3 gap-3">
+              {([["Drive", todayCheckin.drive], ["Peace", todayCheckin.peace], ["Voice", todayCheckin.voice]] as const).filter(([, v]) => v != null).map(([k, v]) => (
+                <div key={k}><dt className="text-sm text-muted">{k}</dt><dd className="font-serif text-2xl tabular-nums">{v}</dd></div>
+              ))}
+            </dl>
+          )}
+          <ul className="space-y-4 border-t border-line pt-5">
+            {todayEntries.map((e) => (
+              <li key={e.id}>
+                <p className="text-sm text-muted">{PRACTICES[e.practice].title}</p>
+                <p className="mt-1 font-serif text-lg">{e.body}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+        {todaySail && (
+          <section aria-labelledby="sail-h" className="card-quiet">
+            <p id="sail-h" className="text-sm text-muted">Today's Sail</p>
+            <p className="mt-1 font-serif text-lg">{todaySail.sail}</p>
+            {serves && <p className="mt-1 text-sm text-muted">Serves {serves.name}</p>}
+          </section>
+        )}
         {todayCheckin && values.length > 0 && <EvidenceCard key={todayCheckin.id} checkin={todayCheckin} values={values} when="today" />}
+        {tide}
         {invite}
         <Nudges />
-        <ul className="space-y-3">
-          {todayEntries.map((e) => (
-            <li key={e.id} className="rounded-2xl border border-line bg-surface p-5">
-              <p className="text-sm text-muted">{PRACTICES[e.practice].title}</p>
-              <p className="mt-2 font-serif text-lg leading-relaxed">{e.body}</p>
-            </li>
-          ))}
-        </ul>
         <div className="flex flex-wrap gap-3">
           <button className="btn btn-ghost" onClick={() => { beginPractice(); setAdding(true); setStep("practice"); }}>
             Add another practice
           </button>
-          <Link href="/map" className="btn-quiet inline-flex items-center rounded-full">
-            See the map
+          <Link href="/tide" className="btn-quiet inline-flex items-center rounded-full">
+            See the tide
           </Link>
         </div>
       </div>
@@ -209,9 +306,10 @@ export default function TodayPage() {
       <div className="fade-in space-y-8">
         <div>
           <h1 className="font-serif text-3xl">Logged.</h1>
-          <p className="mt-2 text-muted">The tide is a little higher. Nothing else is needed from you today.</p>
+          <p className="mt-2 text-muted">{riseFrom != null ? "The tide is a little higher." : "Added."} Nothing else is needed from you today.</p>
         </div>
-        {tide}
+        {profile.aiConsent && <Bearing today={today} />}
+        <TideLine level={daysPracticed / dim} from={riseFrom != null ? riseFrom / dim : undefined} label={tideLabel} />
         {distress && (
           <aside role="note" className="rounded-2xl border border-brass bg-surface p-5">
             <p className="font-serif text-lg leading-relaxed">Some of what you wrote sounded heavy. Ballast isn't a therapist and can't be there the way a person can. If this is more than a rough patch, please reach out to someone you trust, or a crisis line. In the US you can call or text 988.</p>
@@ -239,47 +337,39 @@ export default function TodayPage() {
           </div>
         )}
         <div className="flex gap-3">
-          <Link href="/map" className="btn">See the map</Link>
-          <Link href="/archive" className="btn btn-ghost">Archive</Link>
+          <Link href="/tide" className="btn">See the tide</Link>
+          <Link href="/map" className="btn btn-ghost">Map</Link>
         </div>
       </div>
     );
   }
 
-  // ───── dials
+  // ───── dials: one calm card. Floor value, the three dials, and the practice they suggest.
   if (step === "dials") {
     return (
-      <div className="fade-in space-y-8">
+      <div className="fade-in space-y-6">
         <Header name={profile.name} />
+        {profile.aiConsent && <Bearing today={today} />}
         {invite}
         <Nudges />
         {sailEntry && <SailCheck entry={sailEntry} today={today} answer={sailAnswer} carried={values.length ? allValues.find((v) => v.id === checkins.find((c) => c.localDate === sailEntry.localDate)?.floorValueId) : undefined} onAnswer={(r) => { setSailAnswer(r); void setSailResult(sailEntry.id, r); }} onAdvocate={(t) => void setSailAdvocate(sailEntry.id, t)} />}
         {yesterday && values.length > 0 && <EvidenceCard key={yesterday.id} checkin={yesterday} values={values} when="yesterday" />}
-        <DialSlider label="Drive" hint="How hungry, focused and in motion do you feel?" low="Idle" high="Charging" value={drive} onChange={setDrive} ghost={todayCheckin ? undefined : lastCheckin?.drive} />
-        <DialSlider label="Peace" hint="How settled, present and “enough” do you feel?" low="Restless" high="Settled" value={peace} onChange={setPeace} ghost={todayCheckin ? undefined : lastCheckin?.peace} />
-        <DialSlider label="Voice" hint="How have you been talking to yourself: more critic, or more advocate?" low="Critic" high="Advocate" value={voice} onChange={setVoice} ghost={todayCheckin ? undefined : lastCheckin?.voice} />
-        <p className="text-sm text-muted">These measure how today feels, not how well you're doing. There's no right answer, only an honest one.</p>
-        <button className="btn w-full sm:w-auto" onClick={async () => {
-          await saveCheckin(today, drive, peace, voice);
-          setStep("breath");
-          // Ask Claude while the breath gate runs; if it doesn't answer in time, the rule-based pick stands.
-          if (profile.aiConsent) {
-            const avail = availablePractices({ countedDays: profile.countedDays, hasEnough: Object.values(profile.enough).some(Boolean), hasValues: values.length > 0 });
-            void callAI<{ practice: PracticeId; reason: string }>("/api/ai/next-practice", {
-              drive, peace, voice, setback,
-              days: checkins.slice(-14).map((c) => ({ date: c.localDate, drive: c.drive, peace: c.peace, voice: c.voice, peaceAfter: c.peaceAfter, driveAfter: c.driveAfter })),
-              history: entries.slice(-14).map((e) => ({ date: e.localDate, practice: e.practice })),
-              available: avail.map((id) => ({ id, title: PRACTICES[id].title, blurb: PRACTICES[id].blurb })),
-              insights: practiceInsights(checkins, entries, mid.peace).map((r) => ({ practice: r.practice, n: r.n, peaceLift: Number(r.peaceLift.toFixed(1)), driveShift: r.driveShift == null ? null : Number(r.driveShift.toFixed(1)) })),
-            }).then((r) => {
-              // Never swap the practice under someone who has started writing or chosen their own.
-              if (r.ok && avail.includes(r.data.practice) && !typedRef.current && (stepRef.current === "breath" || stepRef.current === "practice")) setAiPick(r.data);
-            });
-          }
-        }}>
-          Continue
-        </button>
-        <button className="btn-quiet block rounded-full text-[15px]" onClick={() => { setFields({}); setSail(""); setStep("short"); }}>
+        <section aria-label="Today's check-in" className="card space-y-7">
+          {values.length > 0 && <FloorValue values={values} value={floorValueId} onChange={setFloorValueId} carried={carried} />}
+          <div className={`space-y-7 ${values.length > 0 ? "border-t border-line pt-6" : ""}`}>
+            <DialSlider label="Drive" hint="How hungry, focused and in motion do you feel?" low="Idle" high="Charging" value={drive} onChange={setDrive} ghost={todayCheckin ? undefined : lastCheckin?.drive} />
+            <DialSlider label="Peace" hint="How settled, present and “enough” do you feel?" low="Restless" high="Settled" value={peace} onChange={setPeace} ghost={todayCheckin ? undefined : lastCheckin?.peace} />
+            <DialSlider label="Voice" hint="How have you been talking to yourself: more critic, or more advocate?" low="Critic" high="Advocate" value={voice} onChange={setVoice} ghost={todayCheckin ? undefined : lastCheckin?.voice} />
+            <p className="text-sm text-muted">These measure how today feels, not how well you're doing. There's no right answer, only an honest one.</p>
+          </div>
+          <div className="border-t border-line pt-6" aria-live="polite">
+            <p className="text-sm text-muted">Today's practice</p>
+            <p className="mt-1 font-serif text-xl">{p.title}</p>
+            <p className="mt-1 text-[15px] text-muted">{p.blurb}. {fromLibrary ? "From the Library" : "Picked from your dials"}; you can choose another next.</p>
+          </div>
+          <button className="btn w-full" onClick={() => void begin()}>Begin</button>
+        </section>
+        <button className="btn-quiet block rounded-full text-[15px]" onClick={() => { leaveCard(); setFields({}); setSail(""); setStep("short"); }}>
           Short on time? Do the 2-minute version
         </button>
       </div>
@@ -292,7 +382,7 @@ export default function TodayPage() {
       <div className="fade-in space-y-7">
         <div>
           <h1 className="font-serif text-3xl">Short day</h1>
-          <p className="mt-2 text-muted">Drive {drive} · Peace {peace} · Voice {voice}. One line is enough. It still counts.</p>
+          <p className="mt-2 text-muted">Drive {drive} · Peace {peace} · Voice {voice}{carried ? ` · Carrying ${carried.name}` : ""}. One line is enough. It still counts.</p>
         </div>
         <div>
           <label htmlFor="f-line" className="mb-2 block text-[15px]">{PRACTICES.short_day.prompt}</label>
@@ -302,7 +392,7 @@ export default function TodayPage() {
           <label htmlFor="sail" className="mb-2 block text-[15px]">Sail: what I'm reaching for today <span className="text-muted">(optional)</span></label>
           <input id="sail" className="field serif" value={sail} onChange={(e) => setSail(e.target.value)} placeholder="Today I'm going for…" />
         </div>
-        {values.length > 0 && <FloorValue values={values} value={floorValueId} onChange={setFloorValueId} carried={carried} />}
+        {askFloorLater && <FloorValue values={values} value={floorValueId} onChange={setFloorValueId} carried={carried} />}
         <div className="flex items-center gap-3">
           <button className="btn" onClick={() => void finishShort()} disabled={saving || !(fields.line ?? "").trim()}>{saving ? "Saving…" : "Close today"}</button>
           <button className="btn-quiet rounded-full" onClick={() => setStep("dials")}>Back</button>
@@ -406,10 +496,11 @@ export default function TodayPage() {
   return (
     <div className="fade-in space-y-7">
       <div>
-        <h1 className="font-serif text-3xl">Floor & Sail</h1>
+        <h1 className="font-serif text-3xl">{values.length ? "Your Sail" : "Floor & Sail"}</h1>
         <p className="mt-2 text-muted">{values.length ? "Your values are the ballast. Your goals are the sails. Both optional." : "One line for what you're reaching for, and one for what stays true either way. Both optional."}</p>
       </div>
-      {values.length > 0 && <FloorValue values={values} value={floorValueId} onChange={setFloorValueId} carried={carried} />}
+      {askFloorLater && <FloorValue values={values} value={floorValueId} onChange={setFloorValueId} carried={carried} />}
+      {!askFloorLater && carried && <p className="text-[15px] text-muted">Carrying <span className="font-serif text-lg text-ink">{carried.name}</span> today.</p>}
       <div>
         <label htmlFor="sail" className="mb-2 block text-[15px]">Sail: what I'm reaching for today</label>
         <input id="sail" className="field serif" value={sail} onChange={(e) => setSail(e.target.value)} placeholder="Today I'm going for…" />
@@ -485,6 +576,8 @@ function SailCheck({ entry, today, answer, carried, onAnswer, onAdvocate }: { en
 }
 
 function Header({ name }: { name: string }) {
+  // The horizon's tick sits where the sun is in a waking day (5am to 10pm).
+  const h = new Date().getHours() + new Date().getMinutes() / 60;
   return (
     <header>
       <p className="text-sm text-muted">{formatLong(todayStr())}</p>
@@ -492,6 +585,7 @@ function Header({ name }: { name: string }) {
         {greeting()}
         {name ? `, ${name}` : ""}.
       </h1>
+      <HorizonLine className="mt-4" tick={Math.min(1, Math.max(0, (h - 5) / 17))} />
     </header>
   );
 }
@@ -500,7 +594,7 @@ function Header({ name }: { name: string }) {
 function FloorValue({ values, value, onChange, carried }: { values: Value[]; value?: string; onChange: (id: string | undefined) => void; carried?: Value }) {
   return (
     <div>
-      <p className="mb-2 text-[15px]">Floor: today I carry{carried ? <span className="font-medium"> {carried.name}</span> : "…"}</p>
+      <p className="mb-3 text-[15px]">{carried ? <>Today I carry <span className="font-serif text-xl">{carried.name}</span></> : "Today I carry…"}</p>
       <ValueChips values={values} value={value} onChange={onChange} label="Today I carry" />
       {carried?.definition && <p className="mt-2 font-serif text-[17px] leading-relaxed text-muted">{carried.definition}</p>}
     </div>

@@ -78,19 +78,22 @@ export async function loadSample(name = "Sam") {
   const values: Value[] = SAMPLE_VALUES.map((v, i) => ({ id: uid(), name: v.name, definition: v.definition, position: i, core: true, custom: false, createdAt: t0, updatedAt: t0, dirty: 0 }));
   const evidenceUsed = new Map<string, number>();
 
-  const DAYS = 52;
+  // About four months, so the Tide calendar shows several months and a 90-day season can be reviewed.
+  const DAYS = 120;
   let sampleIdx = 0;
   let valueIdx = 0;
   for (let i = DAYS; i >= 1; i--) {
+    // a harder stretch around week eight, then a return: drift and coming back is the practice
+    const rough = i <= 68 && i >= 58 ? 1 : 0;
     // skip some days: missing a day never matters
-    if (rand() < 0.2) continue;
+    if (rand() < (rough ? 0.45 : 0.2)) continue;
     const date = addDays(today, -i);
     const t = (DAYS - i) / DAYS; // 0 → 1, a slow drift toward Ballast
-    const drive = clamp(7.6 + (rand() - 0.5) * 2.4 - t * 0.4 + (i % 9 === 0 ? -2.2 : 0));
+    const drive = clamp(7.6 + (rand() - 0.5) * 2.4 - t * 0.4 + (i % 9 === 0 ? -2.2 : 0) + rough * 0.6);
     // Values arrive about a third of the way in. On days a value was lived, Peace runs a little higher.
     const valuesOn = t > 0.3;
     const lived = valuesOn && rand() < 0.6;
-    const peace = clamp(3.6 + t * 3.6 + (rand() - 0.5) * 2.6 + (i % 11 === 0 ? -1.8 : 0) + (lived ? 0.7 : 0));
+    const peace = clamp(3.6 + t * 3.6 + (rand() - 0.5) * 2.6 + (i % 11 === 0 ? -1.8 : 0) + (lived ? 0.7 : 0) - rough * 1.6);
     // Voice drifts up over the sample and tends to travel with Peace
     const voice = clamp(3.8 + t * 3.2 + (peace - 5) * 0.4 + (rand() - 0.5) * 2.2);
     const id = uid();
@@ -124,28 +127,26 @@ export async function loadSample(name = "Sam") {
   // One entry from a year ago, so "On this day last year" has something to show.
   {
     const date = addDays(today, -365);
-    const id = uid();
+    // An entry with no check-in, so it doesn't start the first 90-day season a year back.
     const ts = new Date(`${date}T08:00:00`).toISOString();
-    checkins.push({ id, localDate: date, drive: 8, peace: 3, createdAt: ts, updatedAt: ts, dirty: 0 });
     entries.push({
       id: uid(), localDate: date, practice: "past_self", prompt: PRACTICES.past_self.prompt,
       fields: { then: "At 26, wanting to feel like I belonged somewhere", now: "I have a few people who'd drop everything. I keep waiting to feel like I've arrived, and I keep forgetting that this is what arriving looks like." },
       body: "I have a few people who'd drop everything. I keep waiting to feel like I've arrived, and I keep forgetting that this is what arriving looks like.",
-      tags: ["people"], checkinId: id, createdAt: ts, updatedAt: ts, dirty: 0,
+      tags: ["people"], createdAt: ts, updatedAt: ts, dirty: 0,
     });
   }
 
   // One check-back that is due today, to show resurfacing.
   {
+    // no check-in for this old entry either, so seasons begin with the sample's real run of days
     const date = addMonths(today, -6);
-    const id = uid();
     const ts = new Date(`${date}T08:00:00`).toISOString();
-    checkins.push({ id, localDate: date, drive: 9, peace: 3, createdAt: ts, updatedAt: ts, dirty: 0 });
     entries.push({
       id: uid(), localDate: date, practice: "grind", prompt: PRACTICES.grind.prompt,
       fields: { hard: "Sleeping four hours a night while we launch", future: "I'll know I can carry a heavy season without losing myself in it. And I'll sleep like it's a luxury." },
       body: "I'll know I can carry a heavy season without losing myself in it. And I'll sleep like it's a luxury.",
-      tags: ["work", "health"], checkinId: id, resurfaceOn: today, createdAt: ts, updatedAt: ts, dirty: 0,
+      tags: ["work", "health"], resurfaceOn: today, createdAt: ts, updatedAt: ts, dirty: 0,
     });
   }
 

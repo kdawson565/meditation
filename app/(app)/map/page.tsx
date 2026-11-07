@@ -4,11 +4,11 @@ import { useMemo, useState } from "react";
 import { useCheckins, useEntries, useValues } from "@/lib/hooks";
 import { coreValues } from "@/lib/values";
 import GrowthPeace from "@/components/GrowthPeace";
-import { addDays, daysInMonth, formatLong, todayStr } from "@/lib/dates";
+import { addDays, formatLong, todayStr } from "@/lib/dates";
 import { midlines, quadrantOf, QUADRANT_INFO, type Quadrant } from "@/lib/quadrant";
 import type { Checkin } from "@/lib/types";
 import QuadrantMap from "@/components/QuadrantMap";
-import TideLine from "@/components/TideLine";
+import Segmented from "@/components/Segmented";
 
 const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
 
@@ -36,13 +36,12 @@ export default function MapPage() {
       const c = byDate.get(e.localDate);
       if (c?.peaceAfter) (lifts[e.practice] ??= []).push(c.peaceAfter - c.peace);
     }
-    const monthDays = new Set(checkins.filter((c) => c.localDate.startsWith(today.slice(0, 7))).map((c) => c.localDate)).size;
-    return { mid, days, counts, thisW, prevW, lifts, monthDays };
+    return { mid, days, counts, thisW, prevW, lifts };
   }, [checkins, entries, today]);
 
   if (!data || !allValues) return <div aria-busy="true" />;
   const hasValues = coreValues(allValues).length > 0;
-  const { mid, days, counts, thisW, prevW, lifts, monthDays } = data;
+  const { mid, days, counts, thisW, prevW } = data;
 
   if (days.length === 0) {
     return (
@@ -70,11 +69,7 @@ export default function MapPage() {
     <div className="fade-in space-y-10">
       <header>
         <h1 className="font-serif text-3xl">Map</h1>
-        <div className="mt-4 inline-flex rounded-full border border-line p-1" role="tablist" aria-label="Map views">
-          {([["map", "The last 30 days"], ["growth", "Growth + Peace"]] as const).map(([k, label]) => (
-            <button key={k} role="tab" aria-selected={view === k} onClick={() => setView(k)} className={`min-h-[40px] rounded-full px-4 text-sm transition-colors duration-calm ${view === k ? "bg-deep text-on-deep" : "text-muted hover:text-ink"}`}>{label}</button>
-          ))}
-        </div>
+        <div className="mt-4"><Segmented label="Map views" value={view} onChange={setView} items={[["map", "The last 30 days"], ["growth", "Growth + Peace"]] as const} /></div>
         {view === "map" && <p className="mt-3 text-muted">Older days fade. Tap a dot to see that day.</p>}
       </header>
 
@@ -85,13 +80,13 @@ export default function MapPage() {
           <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted" aria-label="Legend">
             <li className="flex items-center gap-1.5"><svg width="10" height="10" aria-hidden><circle cx="5" cy="5" r="4" fill="rgb(var(--ink))" opacity="0.7" /></svg>Lived a value</li>
             <li className="flex items-center gap-1.5"><svg width="10" height="10" aria-hidden><circle cx="5" cy="5" r="3.5" fill="none" stroke="rgb(var(--ink))" strokeWidth="1.5" opacity="0.7" /></svg>Other days</li>
-            <li className="flex items-center gap-1.5"><svg width="14" height="14" aria-hidden><circle cx="7" cy="7" r="6" fill="none" stroke="rgb(var(--sea))" strokeWidth="1.25" /></svg>Voice 7 or higher</li>
+            <li className="flex items-center gap-1.5"><svg width="14" height="14" aria-hidden><circle cx="7" cy="7" r="6" fill="none" stroke="rgb(var(--sea-dot))" strokeWidth="1.25" /></svg>Voice 7 or higher</li>
           </ul>
         ) : (
           <p className="mt-2 text-xs text-muted">A ring around a dot means your Voice was 7 or higher that day: you were on your own side.</p>
         )}
-        <p className="mt-1 text-xs text-muted">{mid.personal ? "Dividing lines are your own typical Drive and Peace." : "Dividing lines sit at 5.5 until you have two weeks of check-ins."}</p>
-        <div className="mt-4 rounded-2xl border border-line bg-surface p-5" aria-live="polite">
+        <p className="mt-1 text-xs text-muted">{mid.personal ? "The brass horizon is your own typical Drive; the dotted line, your typical Peace." : "The brass horizon and dotted line sit at 5.5 until you have two weeks of check-ins."}</p>
+        <div className="card mt-4" aria-live="polite">
           <p className="text-sm text-muted">{formatLong(shown.localDate)}</p>
           <p className="mt-1 font-serif text-xl">
             Drive {shown.drive} · Peace {shown.peace}{shown.peaceAfter ? ` → ${shown.peaceAfter}` : ""}{shown.voice != null ? ` · Voice ${shown.voice}` : ""}
@@ -115,11 +110,9 @@ export default function MapPage() {
         </details>
       </section>
 
-      <section aria-label="This month"><TideLine level={monthDays / daysInMonth(today)} label={`${monthDays} ${monthDays === 1 ? "day" : "days"} practiced this month`} /></section>
-
       <section aria-label="This week" className="grid grid-cols-2 gap-3">
         {([["Drive", dD], ["Peace", dP]] as const).map(([name, d]) => (
-          <div key={name} className="rounded-2xl border border-line p-4">
+          <div key={name} className="card-quiet !p-4">
             <p className="text-sm text-muted">{name}, last 7 days</p>
             <p className="mt-1 font-serif text-3xl tabular-nums">{d ? d.now.toFixed(1) : "–"}</p>
             {d?.diff != null && Math.abs(d.diff) >= 0.2 && <p className="text-sm text-muted">{d.diff > 0 ? "up" : "down"} {Math.abs(d.diff).toFixed(1)} from the week before</p>}
@@ -134,7 +127,7 @@ export default function MapPage() {
           {(Object.keys(QUADRANT_INFO) as Quadrant[]).map((k) => (
             <li key={k}>
               <div className="flex justify-between text-[15px]"><span>{QUADRANT_INFO[k].name}</span><span className="tabular-nums text-muted">{counts[k]} {counts[k] === 1 ? "day" : "days"}</span></div>
-              <div className="mt-1 h-2 overflow-hidden rounded-full bg-line"><div className="h-full rounded-full bg-sea" style={{ width: `${(counts[k] / total) * 100}%`, transition: "width 800ms cubic-bezier(0.22,0.61,0.36,1)" }} /></div>
+              <div className="mt-1 h-2 overflow-hidden rounded-full bg-line"><div className="h-full rounded-full bg-sea-dot" style={{ width: `${(counts[k] / total) * 100}%`, transition: "width 800ms cubic-bezier(0.22,0.61,0.36,1)" }} /></div>
             </li>
           ))}
         </ul>

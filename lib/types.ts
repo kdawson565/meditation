@@ -127,11 +127,51 @@ export interface Thank {
   dirty: 0 | 1;
 }
 
+/** A Library card the person saved. Keyed by the card's id. Unsaving sets deletedAt so the change syncs. */
+export interface SavedCard {
+  id: string;
+  savedAt: string;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt?: string;
+  dirty: 0 | 1;
+}
+
+/** Something the AI wrote: a day's Bearing, an Ask Ballast session, or a season review. */
+export interface AiOutput {
+  id: string; // "bearing-YYYY-MM-DD" | "season-N" | "ask-<uuid>"
+  kind: "bearing" | "ask" | "season";
+  body: string;
+  /** Library cards it drew on, shown as sources */
+  cardIds: string[];
+  /** Ask Ballast: the turns */
+  data?: { turns?: AskTurn[] };
+  createdAt: string;
+  updatedAt: string;
+  deletedAt?: string;
+  dirty: 0 | 1;
+}
+
+export interface AskTurn {
+  q: string;
+  answer: string;
+  cardId?: string;
+  question?: string;
+  practiceId?: PracticeId;
+  closing?: boolean;
+  /** the support note was shown instead of an answer */
+  support?: boolean;
+}
+
 export interface Reflection {
   id: string;
   weekStart: string; // the Monday the week begins
   body: string;
   source: "ai" | "local";
+  /** Library cards the AI drew on */
+  cardIds?: string[];
+  /** one practice suggested for next week */
+  practiceId?: PracticeId;
   createdAt: string;
   updatedAt: string;
   dirty: 0 | 1;

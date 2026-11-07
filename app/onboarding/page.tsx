@@ -1,4 +1,5 @@
 "use client";
+import AiExplainer from "@/components/AiExplainer";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useProfile } from "@/lib/hooks";
@@ -115,7 +116,8 @@ export default function Onboarding() {
             <div className="mt-6 space-y-4">
               <Toggle label="Counted Days prompts" help="Occasional, warm perspective prompts about time with the people you love. Off by default." on={counted} set={setCounted} />
               <Toggle label="Daily reminder" help="One quiet nudge at your ritual time, only if you haven't checked in. You'll finish turning it on in Settings after signing in." on={notify} set={setNotify} />
-              <Toggle label="Allow AI features" help="Lets a weekly reflection and thank-you drafts be written by Claude from your own words. Called server-side only, and only when you ask. Off by default." on={ai} set={setAi} />
+              <Toggle label="AI features" help="A daily Bearing, Ask Ballast, and written reflections, drawn only from Ballast's Library and your own words. Off by default." on={ai} set={setAi} />
+              {ai && <div className="card"><AiExplainer /></div>}
             </div>
             <Next onClick={finish} disabled={busy} label={busy ? "Setting sail…" : "Start"} />
           </>

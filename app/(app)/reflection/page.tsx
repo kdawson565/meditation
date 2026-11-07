@@ -8,7 +8,10 @@ import { addDays, formatFull, formatShort, parseDate, todayStr, weekStartOf } fr
 import { saveReflection } from "@/lib/store";
 import { aiReasonText, callAI } from "@/lib/ai-client";
 import { localReflection } from "@/lib/reflect";
-import { pickLenses } from "@/lib/lenses";
+import { availablePractices, PRACTICES } from "@/lib/practices";
+import { quadrantsByDate } from "@/lib/tide";
+import { SourceChips } from "@/components/CardBits";
+import type { PracticeId } from "@/lib/types";
 import { suggestsDistress } from "@/lib/safety";
 import Link from "next/link";
 
@@ -51,17 +54,24 @@ export default function ReflectionPage() {
     setNote("");
     let body = localReflection(week!.days, week!.entries, profile!.lenses, allValues);
     let source: "ai" | "local" = "local";
+    let extra: { cardIds?: string[]; practiceId?: PracticeId } = {};
     if (profile!.aiConsent) {
-      const r = await callAI<{ body: string }>("/api/ai/reflection", {
+      // the quadrant most of this week's days landed in, for choosing cards
+      const q = quadrantsByDate(checkins!);
+      const tally = new Map<string, number>();
+      week!.days.forEach((c) => { const k = q.get(c.localDate)!; tally.set(k, (tally.get(k) ?? 0) + 1); });
+      const quadrant = [...tally.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+      const r = await callAI<{ body: string; cardIds: string[]; practiceId?: PracticeId }>("/api/ai/reflection", {
+        weekStart, quadrant,
+        available: availablePractices({ countedDays: profile!.countedDays, hasEnough: Object.values(profile!.enough).some(Boolean), hasValues: values.length > 0 }),
         days: week!.days.map((c) => ({ date: c.localDate, drive: c.drive, peace: c.peace, voice: c.voice, peaceAfter: c.peaceAfter, driveAfter: c.driveAfter, carried: vName(c.floorValueId), evidence: c.evidence })),
         values: values.map((v) => ({ name: v.name, definition: v.definition })),
         valueCounts,
-        lenses: pickLenses(profile!.lenses, 2, weekStart).map((l) => ({ name: l.name, ideas: l.ideas.slice(0, 5).map((i) => i.text) })),
         entries: week!.entries.map((e) => ({ date: e.localDate, practice: e.practice, body: e.body, tags: e.tags, sail: e.sail, floor: e.floor, advocate: e.sailAdvocate, sailValue: vName(e.sailValue) })),
       });
-      if (r.ok) { body = r.data.body; source = "ai"; } else setNote(aiReasonText(r.reason));
+      if (r.ok) { body = r.data.body; source = "ai"; extra = { cardIds: r.data.cardIds, practiceId: r.data.practiceId }; } else setNote(aiReasonText(r.reason));
     } else setNote("AI features are off, so this note was written on your device from your numbers. You can turn them on in Settings.");
-    await saveReflection(weekStart, body, source);
+    await saveReflection(weekStart, body, source, extra);
     setBusy(false);
   }
 
@@ -85,7 +95,11 @@ export default function ReflectionPage() {
       {current ? (
         <article className="rounded-2xl border border-line bg-surface p-6">
           <p className="whitespace-pre-wrap font-serif text-xl leading-relaxed">{current.body}</p>
-          <p className="mt-4 text-sm text-muted">{current.source === "ai" ? "Written by Claude from your entries." : "Written on your device from your numbers."}</p>
+          {current.practiceId && PRACTICES[current.practiceId] && (
+            <Link href={`/today?practice=${current.practiceId}`} className="btn btn-ghost mt-5">Next week, try: {PRACTICES[current.practiceId].title}</Link>
+          )}
+          {!!current.cardIds?.length && <div className="mt-4"><SourceChips ids={current.cardIds} /></div>}
+          <p className="mt-4 text-sm text-muted">{current.source === "ai" ? "Written by Claude from your entries and the Library cards shown." : "Written on your device from your numbers."}</p>
         </article>
       ) : thin ? (
         <p className="text-muted">Not enough from this week to say much. Check in a few days and come back on Sunday.</p>
@@ -93,7 +107,7 @@ export default function ReflectionPage() {
         <p className="text-muted">{week.days.length} {week.days.length === 1 ? "day" : "days"} and {week.entries.length} {week.entries.length === 1 ? "entry" : "entries"} are ready.</p>
       )}
 
-      {profile.aiConsent && !thin && <p className="text-sm text-muted">Generating sends this week's entries, dials, values and evidence lines to Claude through this app's server. Nothing else leaves your device.</p>}
+      {profile.aiConsent && !thin && <p className="text-sm text-muted">Writing it sends this week's entries, dials, values and evidence lines to Claude through Ballast's server, along with a few Library cards to draw on. Nothing else leaves your device.</p>}
       {note && <p aria-live="polite" className="text-[15px] text-muted">{note}</p>}
       {!thin && (
         <button className="btn" onClick={generate} disabled={busy}>{busy ? "Writing…" : current ? "Write it again" : "Write this week's reflection"}</button>
@@ -109,6 +123,7 @@ export default function ReflectionPage() {
                 <details className="rounded-2xl border border-line p-4">
                   <summary className="cursor-pointer text-[15px]">Week of {formatFull(r.weekStart)}</summary>
                   <p className="mt-3 whitespace-pre-wrap font-serif text-lg leading-relaxed">{r.body}</p>
+                  {!!r.cardIds?.length && <div className="mt-3"><SourceChips ids={r.cardIds} /></div>}
                 </details>
               </li>
             ))}

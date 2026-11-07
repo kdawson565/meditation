@@ -1,0 +1,201 @@
+[
+  {
+    "id": "borrowed-hunger",
+    "title": "Borrowed hunger",
+    "status": "draft",
+    "values": [
+      "Freedom",
+      "Integrity"
+    ],
+    "quadrants": [
+      "grind",
+      "fog"
+    ],
+    "influences": [
+      "René Girard"
+    ],
+    "reflection_question": "Which of your current goals would you still want if no one you know wanted it too?",
+    "linked_practice_id": "whose_hunger",
+    "body": "Many of the things we want, we learned to want by watching someone else want them. That is not a flaw. It is how people pick up most of their tastes. The trouble starts when a borrowed goal runs your calendar and you never checked whether it fits. A borrowed hunger tends to feel urgent and joyless. It spikes when you see someone else ahead, and it fades when no one is watching. Your own hunger is steadier. It is still there on a quiet Sunday. You do not need to drop the borrowed ones. Just label them honestly, and give your best hours to the ones that are actually yours.",
+    "words": 111
+  },
+  {
+    "id": "enough-is-a-number",
+    "title": "Enough is a number",
+    "status": "draft",
+    "values": [
+      "Gratitude",
+      "Peace"
+    ],
+    "quadrants": [
+      "grind"
+    ],
+    "influences": [
+      "Seneca"
+    ],
+    "reflection_question": "If you wrote down what enough looks like this month, what number or line would you put?",
+    "linked_practice_id": "enough_line",
+    "body": "Most hunger has no finish line because nobody drew one. The target moves the moment you near it, and that feels like ambition, though often it is just drift. Drawing a line is not settling. It is deciding, ahead of time, what would count. Write it in plain terms: an amount, a schedule, a kind of week. Then keep reaching, if you want to. The difference is that you will know when you have arrived, and you will be able to feel it instead of sprinting past it. People who know their enough tend to take bigger swings, because the floor under them is visible. The line can move later. It just has to exist first.",
+    "words": 116
+  },
+  {
+    "id": "many-hands",
+    "title": "Many hands",
+    "status": "draft",
+    "values": [
+      "Gratitude",
+      "Humility",
+      "Friendship"
+    ],
+    "quadrants": [
+      "ballast",
+      "harbor"
+    ],
+    "influences": [
+      "Marcus Aurelius"
+    ],
+    "reflection_question": "Who made this week's best moment possible without being asked?",
+    "linked_practice_id": "win_thank",
+    "body": "Every win has a long tail of people behind it. The teacher who was patient once. The colleague who covered a gap. The stranger who wrote the tool you used this morning. Naming them is not modesty. It is accuracy. Ambitious people often skip this step because it feels like giving away credit. It does the opposite. Seeing the chain makes you steadier, because you stop believing that everything rests on you. It also makes you better at the next thing, because you know who to call. Pick one recent win and trace it backward three links. Then tell one of those people what they did.",
+    "words": 106
+  },
+  {
+    "id": "no-final-chord",
+    "title": "There is no final chord",
+    "status": "draft",
+    "values": [
+      "Joy",
+      "Presence"
+    ],
+    "quadrants": [
+      "grind"
+    ],
+    "influences": [
+      "Alan Watts"
+    ],
+    "reflection_question": "What part of this week's work would you still do if no one ever saw the result?",
+    "linked_practice_id": "past_self",
+    "body": "If the point of a song were its last note, the best musicians would play fastest. Nobody listens that way, and nobody should work that way either. A career, a company, a craft: each one is mostly middle. The arrival you are aiming at will last an afternoon, and then it becomes the next middle. That is not a reason to aim lower. It is a reason to notice that you are already inside the thing you wanted. The meeting, the draft, the late fix are not the toll you pay to get somewhere. They are the somewhere. Reaching and enjoying the reach are not opposites. They are the same motion, done awake.",
+    "words": 113
+  },
+  {
+    "id": "still-water",
+    "title": "Still water still moves",
+    "status": "draft",
+    "values": [
+      "Peace",
+      "Patience",
+      "Wisdom"
+    ],
+    "quadrants": [
+      "harbor"
+    ],
+    "influences": [
+      "Lao Tzu"
+    ],
+    "reflection_question": "What would you attempt this season if calm and ambition were allowed to sit together?",
+    "linked_practice_id": "future_pull",
+    "body": "Calm days can feel suspicious to ambitious people, as if peace means the engine is off. It does not. A river looks quiet in the middle and still carries the boat. Settled is a good place to choose from. The trouble is only staying there by default, because nothing pulls. If the harbor has felt comfortable for a while, ask what you would regret not attempting. Not finishing, just attempting. Then take the calm with you. You do not have to trade your peace for your hunger. The best seasons tend to have both: a steady keel, and the sail up.",
+    "words": 101
+  },
+  {
+    "id": "talk-to-yourself-as-you",
+    "title": "Talk to yourself as \"you\"",
+    "status": "draft",
+    "values": [
+      "Kindness",
+      "Resilience"
+    ],
+    "quadrants": [
+      "fog",
+      "grind"
+    ],
+    "influences": [
+      "Marcus Aurelius"
+    ],
+    "reflection_question": "What would you say to yourself right now if you used your own name?",
+    "linked_practice_id": "use_name",
+    "body": "The voice in your head usually says \"I\", and it usually panics. Try switching to your own name, or to \"you\". It sounds small. It changes the distance. When you speak to yourself the way you would speak to a friend, the critic tends to quiet down and the advice gets better. You can still be direct. A good coach is not soft; they are on your side. Write two sentences to yourself in the second person about whatever is pressing today. Notice what you say when you are standing a step outside the problem. That is often the advice you already knew you needed.",
+    "words": 105
+  },
+  {
+    "id": "the-obstacle-is-material",
+    "title": "The obstacle is material",
+    "status": "draft",
+    "values": [
+      "Resilience",
+      "Courage"
+    ],
+    "quadrants": [
+      "grind",
+      "fog"
+    ],
+    "influences": [
+      "Marcus Aurelius",
+      "Epictetus"
+    ],
+    "reflection_question": "What part of today's obstacle is actually yours to work with?",
+    "linked_practice_id": "control",
+    "body": "When something blocks the work, there are two problems: the thing itself, and the story you tell about it. The second one is usually heavier. Try separating them. The thing is a fact: the deal slipped, the launch moved, the person said no. The story is a forecast: this always happens, I should have known, it is over. Facts can be worked with. Forecasts mostly just weigh. Once you have the fact alone, ask what it makes possible that was not possible yesterday. Sometimes the answer is small: a clearer no, a better question, a free afternoon. The obstacle does not have to be welcome to be useful. It only has to be looked at plainly.",
+    "words": 116
+  },
+  {
+    "id": "the-smallest-real-step",
+    "title": "The smallest real step",
+    "status": "draft",
+    "values": [
+      "Discipline",
+      "Courage"
+    ],
+    "quadrants": [
+      "fog"
+    ],
+    "influences": [],
+    "reflection_question": "What is one step small enough that you could finish it before tonight?",
+    "linked_practice_id": "one_move",
+    "body": "On foggy days the problem is rarely desire. It is size. The project looks like a wall, so the hand never reaches for the first brick. Shrink the step until it is almost embarrassing: open the file, write the first sentence, send the one email. A real step is small but not fake. It moves the actual thing, even a little. Once it is done, you are no longer someone who is stuck. You are someone who has started, which is a different person to be on a gray afternoon. Momentum is not a mood you wait for. It is a result you build, one modest brick at a time.",
+    "words": 110
+  },
+  {
+    "id": "values-do-not-finish",
+    "title": "Values do not finish",
+    "status": "draft",
+    "values": [
+      "Integrity",
+      "Growth",
+      "Craft"
+    ],
+    "quadrants": [
+      "grind",
+      "ballast"
+    ],
+    "influences": [
+      "Viktor Frankl"
+    ],
+    "reflection_question": "When this goal is done or dropped, what value will you still be practicing?",
+    "linked_practice_id": "values_not_outcomes",
+    "body": "A goal can be reached, missed, or replaced. A value cannot be finished. You never complete honesty or craft; you only live them again today. That is why values hold when results swing. If the outcome went the wrong way this week, ask a different question: did I act the way I meant to act? If the answer is yes, something real was kept, even if the scoreboard disagrees. This is not a consolation prize. Over years, the way you work tends to matter more than any single result, and it is the one part that was always yours. Results move. Values hold.",
+    "words": 103
+  },
+  {
+    "id": "what-you-would-miss",
+    "title": "What you would miss",
+    "status": "draft",
+    "values": [
+      "Gratitude",
+      "Love",
+      "Family"
+    ],
+    "quadrants": [
+      "harbor",
+      "ballast"
+    ],
+    "influences": [
+      "Seneca"
+    ],
+    "reflection_question": "What ordinary thing in your week would you miss most if it disappeared?",
+    "linked_practice_id": "mental_subtraction",
+    "body": "The things we have for a long time slowly turn invisible. The working body, the steady partner, the kitchen table, the friend who always answers. One way to see them again is to imagine, briefly and concretely, that one of them was never there. Not to frighten yourself. Just to measure it. Picture the week without it, hour by hour. Most people come back from this with a quieter kind of gladness, and often a sharper sense of what deserves their time. It pairs well with ambition. Knowing what you already hold makes it easier to reach for more without gripping.",
+    "words": 101
+  }
+]

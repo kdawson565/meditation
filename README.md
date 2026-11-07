@@ -1,22 +1,8 @@
 # Ballast
 
-**Grow without losing your peace.** A quiet daily practice for ambitious people. Goals move. Values hold: your values are the ballast, your goals are the sails.
+**Grow without losing your peace.** A quiet daily practice for ambitious people. Goals move. Values hold: your values are the ballast, your goals are the sails, Growth + Peace is the promise, and the Drive / Peace / Voice dials are the instruments.
 
-**Phase 1:** onboarding, the daily ritual (two dials, breath gate, practice, Floor & Sail, close with resurfacing), Archive, the Drive/Peace Map with the tide line, export, deletion, installable offline PWA, optional Supabase sync.
-
-**Thinkers:** all eleven (Alan Watts, Marcus Aurelius, Seneca, Epictetus, Thich Nhat Hanh, Lao Tzu, Zhuangzi, Epicurus, Thoreau, Viktor Frankl, Naval Ravikant) are always woven in. Short ideas from them appear under practice prompts and on the close screen, and the weekly reflection frames its suggestion in the spirit of two rotating voices. Users can mark any number of favorites, who come up three times as often. "Play, not progress" and "What's yours to steer" are open to everyone. All content is hand-written paraphrase in `lib/lenses.ts`, labelled as such, never quotation.
-
-**Peace and drive:** yesterday's Sail is asked about once at the next check-in (filled / partly / not), and on a miss that day's Floor comes back. Insights shows your 30-day follow-through. Three drive practices (One honest move, Future pull, Whose hunger is this?) lead on calm-but-flat Harbor days. Dials start at 5 with a faint marker for your last check-in, so yesterday doesn't anchor today. A 2-minute short day (dials + one line) still counts.
-
-**Voice, the third pillar:** a daily Voice dial (Critic to Advocate) sits under Drive and Peace. Low Voice leads with four practices: Advocate's reply, Use your name (distanced self-talk), Evidence file, and Treat yourself like a friend (self-compassion). A missed Sail asks what your advocate would say. The map rings days with Voice of 7 or higher, Insights compares Peace and Drive on kinder versus harsher days, and the weekly reflection mentions the trend and can echo an advocate line, never a critic line. Distress checks also cover what you write in a practice.
-
-**Values (four layers: Values → Goals/Sails → Growth + Peace → Dials):** people choose 3–5 core values (30-value deck plus their own) and write what each looks like on a good day; definitions can be left blank. New users do it in onboarding; existing users get a skippable invitation on Today, and Settings → Your values edits them anytime (`/values`). With values set, the Floor becomes "Today I carry: <value>" with their definition, and each Sail can name the value it serves (or "Not sure"; two of those in two weeks makes "Whose hunger is this?" more likely). An optional evidence line ("One moment today you lived Presence") sits on the logged screen, at an evening close, and the next morning for yesterday; blank days show nothing. A miss on a Sail shows the value carried that day. The Map fills dots on days with an evidence line (hollow otherwise) and adds a Growth + Peace tab: weekly Drive/Peace, Sails filled per week, and Peace/Drive on value days vs. other days (counted from when values began, shown at 14+ days with 5+ on each side). Values never hard-delete (dropped ones become `core: false`), so history keeps its names. Stored on the device first (`values` table, `checkins.floorValueId/evidence`, `entries.sailValue`), synced via `0007_values.sql`, included in both exports. Six value practices appear once values are set: Lived in front of you, Easier to be yourself, Held when it was hard (value-aimed gratitude), Values in conflict, a Monthly drift check (first week of the month), and Values, not outcomes (suggested the morning after a missed Sail). Win → Thank ends with an optional "which value did this win express?". Practice fields with `kind: "value"` render as value chips and store the value's name (`0008_value_practices.sql`). The weekly reflection (AI and on-device) names which values showed up in evidence lines and which went quiet, framing drift as normal; AI notes are capped at 200 words. Marketing-site copy changes to match are listed in `MARKETING-COPY.md`.
-
-**Brand:** route 02 "Level line": sail with a sliver of mast (drive), level line (peace), brass weight below (voice). Geometry lives in `lib/brand.json`; `node scripts/make-icons.mjs` regenerates every icon and `public/brand/` (symbol SVG/PNGs, 1024 app icon). `components/Logo.tsx` renders the mark plus the Jost wordmark, optionally with "i am". Bump `VERSION` in `public/sw.js` whenever icons change.
-
-**Phase 3:** push reminders, AI-assisted practice picks, before/after insights ("What moves you") with Drive-after tracking, and an automated accessibility audit.
-
-**Phase 2:** the Ledger with Arrival Audit, Unsent Thanks with a draft helper, Weekly Reflection, and three more practices (Invisible Chain, Enough Line check, Counted Days, opt-in).
+Live at https://app.iamballast.com. What changed recently is in [CHANGELOG.md](CHANGELOG.md); copy waiting for your review is in [COPY-REVIEW.md](COPY-REVIEW.md); keys and accounts are in [WIRING.md](WIRING.md).
 
 ## Run it
 
@@ -26,57 +12,124 @@ npm install
 npm run dev -- -p 3111      # http://localhost:3111
 ```
 
-On the first screen choose **"Explore with sample data"** to get ~50 days of check-ins and 43 entries, so the Map and Archive are populated. (You can reload sample data any time from Settings.)
+On the first screen choose **"Explore with sample data"**. You get about 120 days of check-ins (with a rough patch around week eight and a return), five values with evidence lines, and a completed 90-day season, so Today, Tide, Map and Library are all populated. Reload it any time from Settings.
 
 No keys are needed. Without Supabase env vars Ballast runs **local-first**: everything lives in this browser's IndexedDB.
+
+| Command | What it does |
+|---|---|
+| `npm run dev` | Dev server. Checks the Library first. |
+| `npm run library` | Checks every card in `content/library/` and rebuilds `lib/library.generated.json`. Fails with a list of problems if a card breaks a rule. |
+| `npm run typecheck` | Library check, then TypeScript. |
+| `npm run build` | Library check, then a production build. A bad card stops the build. |
+| `npm run start -- -p 3111` | Serve the production build (the service worker and offline mode only work here). |
+
+### Try the AI features locally
+
+Put `ANTHROPIC_API_KEY` in `.env.local`. If `.env.local` also has the Supabase keys, the AI routes require a signed-in user. To test without signing in, run with the Supabase keys blanked (this is the `ballast-local-ai` entry in `~/Desktop/.claude/launch.json`, port 3112):
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL= NEXT_PUBLIC_SUPABASE_ANON_KEY= npm run dev -- -p 3112
+```
+
+Then Settings → **AI features** → read what's sent → **Turn on AI**. The server log prints one line per AI call with input, cache-write, cache-read and output tokens (`[ai] bearing: …`).
 
 ### Try the PWA / offline mode
 
 ```bash
 npm run build && npm run start -- -p 3111
 ```
-Open it, visit Today/Map/Archive once, then go offline. The service worker only registers in production builds. Install from the browser menu ("Install app" / "Add to Home Screen").
+Visit each tab once, then go offline. Install from the browser menu ("Install app" / "Add to Home Screen"). Bump `VERSION` in `public/sw.js` whenever the app shell or icons change.
 
-### Turn on accounts + cloud sync (Supabase)
+## The four tabs
 
-1. Create a Supabase project. In the SQL editor run `supabase/migrations/0001_init.sql` (tables + row-level security on every table).
-2. Auth → Providers: enable Email (magic link) and Google. Add `http://localhost:3111/auth/callback` as a redirect URL.
-3. Also run `supabase/migrations/0002_phase2.sql` (Ledger, audits, thanks, reflections, all with RLS).
-4. `cp .env.example .env.local` and fill `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` (server only, used by account deletion).
+- **Today** — one calm card: the value you carry today (with your own definition), the three dials, and the practice they suggest. Begin → a breath → the practice → your Sail. The Sail and the evening evidence line sit below the card once you're logged. With AI on, today's **Bearing** sits at the top. Arriving from a Library card (`/today?practice=<id>`) starts with that practice.
+- **Tide** — a month calendar (swipe or arrows). Each practiced day is a dot whose color *and* shape name its quadrant (Ballast = full sea-green dot, Grind = top half, Harbor = right half, Fog = small gray dot); a brass ring means you noted living a value. Unpracticed days are plain. Tap a day for its dials, value, evidence line, Sail and entries. Below: days practiced (a number, never a streak), your values with their moment counts and most recent moment in your own words, Drive and Peace by week, and **Seasons** (every 90 days from your first check-in). Each month has a printable **Tide Report** (`/tide/report?m=YYYY-MM`) that fits on one page; your own words are included only if you tick the box.
+- **Map** — the 30-day quadrant map, with the brass horizon as its Drive axis, plus the Growth + Peace tab.
+- **Library** — principle cards in Ballast's own words. "For today" picks cards from your value, quadrant and recent practices. Browse by value or by theme (the kind of day it helps), save cards, read a card, start its practice. **Ask Ballast** lives here.
 
-### Turn on the AI features (Claude)
+Everything else — Values, Weekly reflection, Archive, What moves you, Ledger, Thanks, Settings — is behind the **You** icon, top right. `/more` redirects there.
 
-Put `ANTHROPIC_API_KEY` in `.env.local` (server only; it never reaches the browser) and restart. Then switch on **Settings → Allow AI features**. The browser calls only this app's `/api/ai/*` routes. In cloud mode they require a signed-in user and are limited to 20 calls an hour. Only what you ask to be processed is sent: the week's entries and dials for a reflection, or one person's name and your note for a thank-you draft. Without a key, consent, or a connection, both features fall back to a plain on-device version and say so.
+## The Library
 
-Writes always hit IndexedDB first (so the ritual works offline) and sync when signed in and online. IDs are client-generated, so retries are idempotent; newest `updated_at` wins.
+One Markdown file per card in `content/library/`. The format and rules are in [content/library/README.md](content/library/README.md). `scripts/build-library.mjs` checks every card (required fields, id matches the file name, body 80–150 words, values from the 30-value deck, valid quadrants and practice id, no exclamation points, nothing that looks like a quotation, and no thinker named in the body) and writes `lib/library.generated.json`, which is bundled into the app so the Library works offline.
+
+The 10 cards there now are **DRAFT placeholders** to show the format. Replace them with your own; set `status: published` to drop the DRAFT mark.
+
+Retrieval (`lib/library.ts`) is a small tag-scoring function: today's value +3, another of your values +1, quadrant +2, a recently used linked practice +1, each matching word of an Ask question +1 (up to 3), shown in the last week −1. Ties go to a card matching today's value, then a stable daily order. No vector database.
+
+## AI (Claude), grounded and off by default
+
+AI stays off until the person turns it on, after a screen that lists exactly what each feature sends (`components/AiExplainer.tsx`). The Anthropic key lives only on the server. Features:
+
+| Feature | Route | What it does |
+|---|---|---|
+| Bearing | `/api/ai/bearing` | Two sentences tying today's value to one card. Made once a day when you tap Begin. |
+| Weekly reflection | `/api/ai/reflection` | Under 200 words, grounded in 1–2 cards, plus one suggested practice. |
+| Ask Ballast | `/api/ai/ask` | At most one card, one reflection question and one practice per answer. 5 questions a conversation, 3 conversations a day, then a calm close. |
+| Season review | `/api/ai/season` | ~300 words, mostly from your own evidence lines, when a 90-day season ends. |
+| Practice pick, thank-you drafts | `/api/ai/next-practice`, `/api/ai/thank-draft` | As before. |
+
+How the grounding is enforced (`lib/ai-server.ts`, `lib/ai-shared.ts`):
+- The **server** retrieves the 2–5 cards for each request; the client can't choose them.
+- Cards are sent **without their influences**, so the model never sees a thinker's name. Any answer that names a thinker (from the cards or the old Lenses) is dropped and the on-device version is used instead.
+- Every card id the model returns is checked against the cards it was given; only those show as sources.
+- The shared rules forbid outside quotes, sayings, studies and famous people, flattery, therapy language and diagnosis.
+- Output is structured JSON (`zod` + the SDK's `zodOutputFormat`), capped by sentences or words. Ask answers lose any sentence that invites more chatting.
+- Serious distress in an Ask question or a season's evidence lines skips the model and shows the 988 support line.
+- A refusal or any failure falls back to the on-device version and says so.
+
+Model: `claude-sonnet-5-5` with extended thinking off (`between_tools`); the grounded features run at low effort. The rules and each feature's instructions are cached system blocks, and the conversation so far is cached too, so repeat Bearings and every Ask turn read most of their input from cache. (Features can't share a cache: each one's JSON format is part of the prompt.)
+
+Limits: 20 AI calls an hour per person (in memory), plus durable daily caps stored in Supabase `ai_usage` (Bearing 3/day, Ask 3 sessions/day × 5 turns, season 3/day). Locally, without Supabase, the daily caps are kept in memory.
+
+What the AI writes is stored in `aiOutputs` (Bearings, Ask sessions, season reviews) and on `reflections` (with card ids and the suggested practice). It syncs, is included in both exports, and is deleted with your data. **There are no analytics** in Ballast; keep it that way.
 
 ## How it's organised
 
 | Path | What |
 |---|---|
+| `app/globals.css`, `tailwind.config.ts` | Design tokens (light, dark, print), type scale, cards, chips, sheet |
+| `components/HorizonLine.tsx` | The brass horizon: Today, the calendar's tide line, the Map's axis |
+| `components/MonthCalendar.tsx`, `DayDot.tsx`, `DayDetail.tsx`, `Sheet.tsx` | Tide calendar, quadrant dots, the day sheet |
+| `lib/tide.ts` | Month summaries, value moments, 90-day seasons and their data review |
+| `content/library/`, `scripts/build-library.mjs`, `lib/library.ts` | Library cards, the checker, retrieval |
+| `lib/ai-server.ts`, `lib/ai-shared.ts`, `app/api/ai/*` | Grounded AI (server only) |
 | `lib/practices.ts` | Practice registry. Adding a practice = adding one object here |
-| `lib/selection.ts` | Rule-based "which practice today" (transparent reasons) |
-| `lib/resurface.ts` | What to bring back at close (due check-backs → low-Peace Past-Self → this day last year → older entry → Enough Line) |
+| `lib/selection.ts` | Rule-based "which practice today" |
+| `lib/resurface.ts` | What to bring back at close |
 | `lib/quadrant.ts` | Quadrants; dividing lines are 5.5 until 14 check-ins, then your own median |
-| `lib/db.ts`, `store.ts`, `sync.ts` | IndexedDB (Dexie), writes, Supabase sync |
-| `app/(app)/*` | Today, Map, Archive, Settings (+ Phase 2 placeholders) |
-| `app/api/account` | Server-side account deletion |
+| `lib/db.ts`, `store.ts`, `sync.ts` | IndexedDB (Dexie, version 5), writes, Supabase sync |
+| `lib/lenses.ts` | The older thinker Lenses (paraphrases). Due to be retired once the real Library exists |
+| `supabase/migrations/` | `0001`–`0010`, all additive |
 
-A "day" rolls over at 4am local time.
+A "day" rolls over at 4am local time. Writes always hit IndexedDB first and sync when signed in and online; newest `updated_at` wins.
 
-## Wiring it up
+## Earlier features, in brief
 
-Everything that needs a key or an account is listed, in order, with how to confirm each step, in [WIRING.md](WIRING.md).
+- **Values:** 3–5 core values (30-value deck plus your own) with your own definitions; set in onboarding or at `/values`. Values never hard-delete (dropped ones become `core: false`). The Floor is the value you carry today; a Sail can name the value it serves (or "Not sure"). Six value practices appear once values are set.
+- **Voice:** the third dial (Critic → Advocate) with four Voice practices; a missed Sail asks what your advocate would say.
+- **Sails:** yesterday's Sail is asked about once (filled / partly / not); on a miss, the value you carried comes back.
+- **Ledger** with the Arrival Audit, **Thanks** with drafts, **Weekly reflection**, **What moves you** (before/after by practice), push reminders, the 2-minute short day.
+- **Brand:** "Level line" mark. Geometry in `lib/brand.json`; `npm run icons` regenerates every icon and `public/brand/`. `components/Logo.tsx` renders the mark and wordmark.
+- **Marketing site:** copy changes for iamballast.com are in `MARKETING-COPY.md`.
+
+## Design system
+
+- **Colors:** navy `#16223A`, paper `#F6F1E7`, surface `#FCF9F2`, brass `#B08D57`, sea green `#78A89E`, muted `#5A6270`; dark: `#0B1626` / `#13213A` / `#E9E4D8` / `#A3A9B3` / `#C9A46A` / `#8FBDB3`. Brass and sea green fail text contrast on light paper (2.75:1 and 2.36:1), so in light mode they are only lines, rings and fills; brass-colored text uses `--brass-ink` `#7A5A28` (5.6:1), and dots use `--sea-dot` `#5E9488` (3:1 for shapes).
+- **Quadrant dots:** `--q-ballast/grind/harbor` passed the colorblind validator in both modes; Fog is a deliberate gray, and every quadrant also has its own shape.
+- **Type:** Newsreader (headlines, values, card titles, reading) and Inter (UI), bundled by `next/font`. Scale 34 / 26 / 21 / 18 serif; 16 / 15 / 13 sans.
+- **Motion:** 300–600 ms ease-out fades, the horizon draws in once, the tide rises at the end of the ritual. All of it stops under `prefers-reduced-motion`.
+- No shadows, gradients, confetti, badges, streaks, or red.
 
 ## Accessibility
 
-An axe-core audit (WCAG 2.0/2.1/2.2 A and AA rules plus best practices) ran on every screen at 375px in light mode, and on Today, Map, Ledger, Archive and Settings in dark mode, including each step of the ritual. It found one issue (the breath screen had no heading), which is fixed, and the map's day list is now keyboard-selectable. Automated checks cover roughly a third of WCAG; keyboard flow, screen-reader wording and reduced-motion have **not** been tested by a person with assistive tech.
+axe-core (WCAG 2.0/2.1/2.2 A and AA) runs clean at 375px in light and dark on Today, Tide, the Tide Report, Map, Library, a card, Ask Ballast, Reflection, Settings and You. Calendar days are buttons with full spoken labels ("Thursday, October 1: The Harbor, lived a value"); every chart has a table or text alternative. Automated checks cover about a third of WCAG; nothing has been tested by a person using a screen reader.
 
 ## Known gaps / unverified
 
-- The Claude routes (`/api/ai/*`) were exercised against the live API in local mode (reflection, thank-you draft, practice pick, and a distress-signal case), but not yet in cloud mode with sign-in required, and prompt tuning is still open.
-- Push reminders: the subscribe flow, cron route and service-worker handlers are written, but no notification has ever been delivered (no VAPID keys, no deployment).
-- Supabase is connected and sync, new-device pull, row-level security and account deletion were tested against the live project. **Not tested:** a real emailed magic link end to end, and Google sign-in.
-- Offline mode and installability are built but not checked in a production build on a device.
-- Insights compare same-day before/after ratings, so they show association, not cause.
-- No automated tests; accessibility audit is automated-only (see above).
+- **Database:** migrations `0009_saved_cards.sql` and `0010_grounded_ai.sql` are written but **not applied** to the live project yet. Until they are, saved cards and AI outputs stay on the device and the signed-in daily AI caps can't be stored.
+- **AI in cloud mode:** every AI feature was tested against the live API in local mode (no sign-in). Not yet tested signed in, where the durable daily caps apply.
+- **Push reminders, emailed magic link, Google sign-in:** not verified on a phone. See WIRING.md.
+- The Library is 10 DRAFT placeholder cards. The old Lenses still show "in the spirit of" ideas on Today alongside the new cards.
+- No automated tests.

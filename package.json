@@ -6,17 +6,22 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit",
-    "icons": "node scripts/make-icons.mjs"
+    "typecheck": "node scripts/build-library.mjs && tsc --noEmit",
+    "icons": "node scripts/make-icons.mjs",
+    "library": "node scripts/build-library.mjs",
+    "predev": "node scripts/build-library.mjs",
+    "prebuild": "node scripts/build-library.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.6.0",
     "@supabase/supabase-js": "^2.118.0",
     "dexie": "^4.4.7",
     "dexie-react-hooks": "^4.4.0",
     "next": "^15.5.28",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "web-push": "^3.6.7"
+    "web-push": "^3.6.7",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

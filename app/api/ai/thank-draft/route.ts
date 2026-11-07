@@ -11,9 +11,10 @@ export async function POST(req: Request) {
   const system = `You help someone draft a short thank-you message to a person in their life, built from their OWN words.
 Rules:
 - Use the person's own phrasing and specifics from what they wrote. Do not invent facts, memories, or details they didn't give.
-- 60 to 110 words. First person. Warm, plain, specific. No flattery, no clichés ("from the bottom of my heart"), no exclamation-mark pile-ups, no sign-off flourish.
+- Length follows what they gave you: 25 to 110 words. If they wrote one sentence, the message is short. Never pad it with feelings, effort or circumstances they didn't mention.
+- First person. Warm, plain, specific. No flattery, no clichés ("from the bottom of my heart"), no exclamation-mark pile-ups, no sign-off flourish.
 - Start with the person's name. End with the thank-you itself, not an offer or a question.
-- Output only the message text.
+- Output only the message itself. Never add a note, offer or question to the person drafting it.
 ${SAFETY}`;
   try {
     const draft = await callClaude(system, `Recipient: ${person}\nWhat I want to thank them for, in my words:\n"""${reason}"""`, 400);
